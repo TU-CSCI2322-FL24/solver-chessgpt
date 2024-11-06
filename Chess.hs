@@ -24,12 +24,33 @@ move game@(whites,blacks) (Move old new)
 
 --will need refining for special cases; will need to write a function to block all pieces except knight when obstructed
 canMake :: Game -> Piece -> Position -> Bool
-canMake _ (Pawn,_,(x1,y1)) (x2,y2)    = (x2==x1)&&(y2==(y1+1)) --add diagonals to take pieces and the second space for the first move; also need a transformation function for when they reach the end of the board
-canMake _ (Rook,_,(x1,y1)) (x2,y2)    = (x2==x1)||(y2==y1) --what the hell is castling
-canMake _ (Knight,_,(x1,y1)) (x2,y2)  = ((x2==(x1+3))&&(y2==(y1+1)))||((x2==(x1+3))&&(y2==(y1-1)))||((x2==(x1-3))&&(y2==(y1+1)))||((x2==(x1-3))&&(y2==(y1-1)))||((x2==(x1+1))&&(y2==(y1+3)))||((x2==(x1-1))&&(y2==(y1+3)))||((x2==(x1+1))&&(y2==(y1-3)))||((x2==(x1-1))&&(y2==(y1-3)))
-canMake _ (Bishop,_,(x1,y1)) (x2,y2)  = (abs (y2-y1))==(abs (x2-x1))
-canMake _ (Queen,_,(x1,y1)) (x2,y2)   = ((y2-y1)==(x2-x1))||(x2==x1)||(y2==y1)
-canMake game (King,_,(x1,y1)) (x2,y2) = (True{-this should be a case to ensure the king doesn't move into check, but I'm having trouble implementing it-})&&(((x2==(x1+1))&&(y2==(y1+1)))||((x2==x1)&&(y2==(y1+1)))||((x2==(x1+1))&&(y2==y1))||((x2==(x1-1))&&(y2==(y1-1)))||((x2==(x1-1))&&(y2==y1))||((x2==x1)&&(y2==(y1-1))))
+canMake _ (Pawn,White,(x1,y1)) (x2,y2) = 
+  (x2==x1)&&(y2==(y1+1)) --add diagonals to take pieces and the second space for the first move; also need a transformation function for when they reach the end of the board
+canMake _ (Pawn,Black,(x1,y1)) (x2,y2) = 
+  (x2==x1)&&(y2==(y1-1)) --white and black pawns move in opposite directions;see notes above for needed additions. This setup assumes black is at the top of the board
+canMake _ (Rook,_,(x1,y1)) (x2,y2)     = 
+  (x2==x1)||(y2==y1) --what the hell is castling
+canMake _ (Knight,_,(x1,y1)) (x2,y2)   = --Shaan wanted me to format it this way, if you guys think it's ugly you can revert it
+  ((x2==(x1+3))&&(y2==(y1+1)))||
+  ((x2==(x1+3))&&(y2==(y1-1)))||
+  ((x2==(x1-3))&&(y2==(y1+1)))||
+  ((x2==(x1-3))&&(y2==(y1-1)))||
+  ((x2==(x1+1))&&(y2==(y1+3)))||
+  ((x2==(x1-1))&&(y2==(y1+3)))||
+  ((x2==(x1+1))&&(y2==(y1-3)))||
+  ((x2==(x1-1))&&(y2==(y1-3)))
+canMake _ (Bishop,_,(x1,y1)) (x2,y2)   = 
+  (abs (y2-y1))==(abs (x2-x1))
+canMake _ (Queen,_,(x1,y1)) (x2,y2)    = 
+  ((y2-y1)==(x2-x1))||(x2==x1)||(y2==y1)
+canMake game (King,team,(x1,y1)) (x2,y2)  = 
+  (not $ check game (King,team,(x2,y2)))&&
+  (((x2==(x1+1))&&(y2==(y1+1)))||
+  ((x2==x1)&&(y2==(y1+1)))||
+  ((x2==(x1+1))&&(y2==y1))||
+  ((x2==(x1-1))&&(y2==(y1-1)))||
+  ((x2==(x1-1))&&(y2==y1))||
+  ((x2==x1)&&(y2==(y1-1))))
 
 getPosition :: Piece -> Position
 getPosition (_,_,(x,y)) = (x,y)
@@ -42,12 +63,17 @@ block game (Move (Knight,_,(x1,y1)) (Knight,_,(x2,y2))) = False
 block game (Move _ _) = undefined
 
 possibleMoves :: Game -> Piece -> [Move]
-possibleMoves game (Pawn,_,(x,y))   = undefined--[Move (x,y) (x,y+1),(x,y+2),canMake]
-possibleMoves game (Rook,_,(x,y))   = undefined--[Move (x,y) (x,ys) | ys <- [1..8],canMake]++[Move (x,y) (xs,y) | xs <- [1..8],canMake]
-possibleMoves game (Knight,_,(x,y)) = undefined--no
-possibleMoves game (Bishop,_,(x,y)) = undefined--Not sure how to get this one
-possibleMoves game (Queen,_,(x,y))  = undefined--(possibleMoves (Bishop (x,y)))++(possibleMoves (Rook (x,y)))
-possibleMoves game (King,_,(x,y))   = undefined--like Queen but only 1 space radius
+possibleMoves game piece@(Pawn,team,(x,y)) = 
+  [Move piece (Pawn,team,move) | move <- moves,canMake game piece move]
+    where moves = [(x,y+1),(x,y+2),(x,y-1),(x,y-2)]
+possibleMoves game piece@(Rook,team,(x,y))    = 
+  [Move (Rook,team,(x,y)) (Rook,team,(x,ys)) | ys <- [1..8],canMake game piece (x,ys)]++[Move (Rook,team,(x,y)) (Rook,team,(xs,y)) | xs <- [1..8],canMake game piece (xs,y)]
+possibleMoves game piece@(Knight,_,(x,y))  = undefined--no
+possibleMoves game piece@(Bishop,_,(x,y))  = undefined--Not sure how to get this one
+possibleMoves game (Queen,team,(x,y))      = (possibleMoves game (Rook,team,(x,y)))++(possibleMoves game (Bishop,team,(x,y)))
+possibleMoves game piece@(King,team,(x,y)) = 
+  [Move piece (King,team,move) | move <- moves,canMake game piece move]
+    where moves = [(x,y+1),(x+1,y),(x,y-1),(x-1,y),(x+1,y+1),(x+1,y-1),(x-1,y-1),(x-1,y+1)]
   
 safeMoves :: Game -> Piece -> [Move]
 safeMoves game piece = [move | move <- (possibleMoves game piece), not $ danger game piece]
