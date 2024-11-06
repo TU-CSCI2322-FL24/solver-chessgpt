@@ -67,10 +67,12 @@ possibleMoves game piece@(Pawn,team,(x,y)) =
   [Move piece (Pawn,team,move) | move <- moves,canMake game piece move]
     where moves = [(x,y+1),(x,y+2),(x,y-1),(x,y-2)]
 possibleMoves game piece@(Rook,team,(x,y)) = 
-  [Move (Rook,team,(x,y)) (Rook,team,(x,ys)) | ys <- [1..8],canMake game piece (x,ys)]++[Move (Rook,team,(x,y)) (Rook,team,(xs,y)) | xs <- [1..8],canMake game piece (xs,y)]
+  [Move (Rook,team,(x,y)) (Rook,team,(x,ys)) | ys <- [1..8],canMake game piece (x,ys)]++
+  [Move (Rook,team,(x,y)) (Rook,team,(xs,y)) | xs <- [1..8],canMake game piece (xs,y)]
 possibleMoves game piece@(Knight,_,(x,y))  = undefined--no
 possibleMoves game piece@(Bishop,_,(x,y))  = undefined--Not sure how to get this one
-possibleMoves game (Queen,team,(x,y))      = (possibleMoves game (Rook,team,(x,y)))++(possibleMoves game (Bishop,team,(x,y)))
+possibleMoves game (Queen,team,(x,y))      = 
+  (possibleMoves game (Rook,team,(x,y)))++(possibleMoves game (Bishop,team,(x,y)))
 possibleMoves game piece@(King,team,(x,y)) = 
   [Move piece (King,team,move) | move <- moves,canMake game piece move]
     where moves = [(x,y+1),(x+1,y),(x,y-1),(x-1,y),(x+1,y+1),(x+1,y-1),(x-1,y-1),(x-1,y+1)]
