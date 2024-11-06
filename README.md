@@ -1,3 +1,3 @@
 # ChessGPT
 
-Morgan Powers, Shaan Desai, Owen Somebody, The Other Guy
+Morgan Powers, Shaan Desai, Owen Story, Brandon Raimondo
