@@ -23,31 +23,36 @@ move game@(whites,blacks) (Move old new)
           replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
 
 block :: Game -> Move -> Bool
-block game (Move (Knight,_,(x1,y1)) (Knight,_,(x2,y2))) = False
+block game (Move (Knight,_,(x1,y1)) (Knight,_,(x2,y2))) = False--will need to account for cases where the position is occupied by a member of the same team
 block game (Move _ _) = undefined
+
+inBounds :: Position -> Bool
+inBounds (x,y) = x>0&&x<9&&y>0&&y<9--this will need to change if we change board size or indexing, ie starting at 0
 
 --will need refining for special cases; will need to write a function to block all pieces except knight when obstructed (above)
 canMake :: Game -> Piece -> Position -> Bool
 canMake _ (Pawn,White,(x1,y1)) (x2,y2) = 
-  (x2==x1)&&(y2==(y1+1)) --add diagonals to take pieces and the second space for the first move; also need a transformation function for when they reach the end of the board
+  (inBounds (x2,y2))&&((x2==x1)&&(y2==(y1+1))) --add diagonals to take pieces and the second space for the first move; also need a transformation function for when they reach the end of the board
 canMake _ (Pawn,Black,(x1,y1)) (x2,y2) = 
-  (x2==x1)&&(y2==(y1-1)) --white and black pawns move in opposite directions;see notes above for needed additions. This setup assumes black is at the top of the board
+  (inBounds (x2,y2))&&((x2==x1)&&(y2==(y1-1))) --white and black pawns move in opposite directions;see notes above for needed additions. This setup assumes black is at the top of the board
 canMake _ (Rook,_,(x1,y1)) (x2,y2)     = 
-  (x2==x1)||(y2==y1) --what the hell is castling
+  (inBounds (x2,y2))&&((x2==x1)||(y2==y1)) --what the hell is castling; inBounds might be kinda redundant here
 canMake _ (Knight,_,(x1,y1)) (x2,y2)   = --Shaan wanted me to format it this way, if you guys think it's ugly you can revert it
-  ((x2==(x1+3))&&(y2==(y1+1)))||
-  ((x2==(x1+3))&&(y2==(y1-1)))||
-  ((x2==(x1-3))&&(y2==(y1+1)))||
-  ((x2==(x1-3))&&(y2==(y1-1)))||
-  ((x2==(x1+1))&&(y2==(y1+3)))||
-  ((x2==(x1-1))&&(y2==(y1+3)))||
-  ((x2==(x1+1))&&(y2==(y1-3)))||
-  ((x2==(x1-1))&&(y2==(y1-3)))
+  (inBounds (x2,y2))&&
+  (((x2==(x1+3))&&(y2==(y1+1)))||
+   ((x2==(x1+3))&&(y2==(y1-1)))||
+   ((x2==(x1-3))&&(y2==(y1+1)))||
+   ((x2==(x1-3))&&(y2==(y1-1)))||
+   ((x2==(x1+1))&&(y2==(y1+3)))||
+   ((x2==(x1-1))&&(y2==(y1+3)))||
+   ((x2==(x1+1))&&(y2==(y1-3)))||
+   ((x2==(x1-1))&&(y2==(y1-3))))
 canMake _ (Bishop,_,(x1,y1)) (x2,y2)   = 
-  (abs (y2-y1))==(abs (x2-x1))
+  (inBounds (x2,y2))&&((abs (y2-y1))==(abs (x2-x1)))--inBounds might be redundant here
 canMake _ (Queen,_,(x1,y1)) (x2,y2)    = 
-  ((y2-y1)==(x2-x1))||(x2==x1)||(y2==y1)
+  (inBounds (x2,y2))&&(((y2-y1)==(x2-x1))||(x2==x1)||(y2==y1))
 canMake game (King,team,(x1,y1)) (x2,y2)  = 
+  (inBounds (x2,y2))&&
   (not $ check game (King,team,(x2,y2)))&&
   (((x2==(x1+1))&&(y2==(y1+1)))||
   ((x2==x1)&&(y2==(y1+1)))||
@@ -89,3 +94,6 @@ check game (_,_,_) = False
 --could probably combine check and checkmate with another data type, not sure if worthwhile
 checkMate :: Game -> Piece -> Bool
 checkMate game piece = (check game piece)&&(null $ possibleMoves game piece)
+
+take :: Game -> Move -> Game
+take game move = undefined
