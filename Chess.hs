@@ -3,7 +3,7 @@ import Data.Ord
 data Move = Move Piece Piece
 --see if we can get the ascii characters in: https://www.alt-codes.net/chess-symbols.php
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
-data Team = White | Black
+data Team = White | Black deriving (Show,Eq)
 
 type Position = (Int,Int)
 type Game     = ([Piece],[Piece])
