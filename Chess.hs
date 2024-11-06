@@ -22,7 +22,11 @@ move game@(whites,blacks) (Move old new)
     where replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
           replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
 
---will need refining for special cases; will need to write a function to block all pieces except knight when obstructed
+block :: Game -> Move -> Bool
+block game (Move (Knight,_,(x1,y1)) (Knight,_,(x2,y2))) = False
+block game (Move _ _) = undefined
+
+--will need refining for special cases; will need to write a function to block all pieces except knight when obstructed (above)
 canMake :: Game -> Piece -> Position -> Bool
 canMake _ (Pawn,White,(x1,y1)) (x2,y2) = 
   (x2==x1)&&(y2==(y1+1)) --add diagonals to take pieces and the second space for the first move; also need a transformation function for when they reach the end of the board
@@ -58,22 +62,20 @@ getPosition (_,_,(x,y)) = (x,y)
 danger :: Game -> Piece -> Bool
 danger game piece@(a,b,c) = not $ null [op | op <- (opposite game piece), canMake game piece c]
 
-block :: Game -> Move -> Bool
-block game (Move (Knight,_,(x1,y1)) (Knight,_,(x2,y2))) = False
-block game (Move _ _) = undefined
-
 possibleMoves :: Game -> Piece -> [Move]
-possibleMoves game piece@(Pawn,team,(x,y)) = 
+possibleMoves game piece@(Pawn,team,(x,y))   = 
   [Move piece (Pawn,team,move) | move <- moves,canMake game piece move]
     where moves = [(x,y+1),(x,y+2),(x,y-1),(x,y-2)]
-possibleMoves game piece@(Rook,team,(x,y)) = 
+possibleMoves game piece@(Rook,team,(x,y))   = 
   [Move (Rook,team,(x,y)) (Rook,team,(x,ys)) | ys <- [1..8],canMake game piece (x,ys)]++
   [Move (Rook,team,(x,y)) (Rook,team,(xs,y)) | xs <- [1..8],canMake game piece (xs,y)]
-possibleMoves game piece@(Knight,_,(x,y))  = undefined--no
-possibleMoves game piece@(Bishop,_,(x,y))  = undefined--Not sure how to get this one
-possibleMoves game (Queen,team,(x,y))      = 
+possibleMoves game piece@(Knight,team,(x,y)) = 
+  [Move piece (Knight,team,move) | move <- moves,canMake game piece move]
+    where moves = [(x+3,y+1),(x+1,y+3),(x+3,y-1),(x-1,y+3),(x-3,y+1),(x+1,y-3),(x-1,y-3),(x-3,y-1)]--Jumpin Jesus Huckleberry Christ on a crutch, I have never hated a line of code this much
+possibleMoves game piece@(Bishop,_,(x,y))    = undefined--Not sure how to get this one
+possibleMoves game (Queen,team,(x,y))        = 
   (possibleMoves game (Rook,team,(x,y)))++(possibleMoves game (Bishop,team,(x,y)))
-possibleMoves game piece@(King,team,(x,y)) = 
+possibleMoves game piece@(King,team,(x,y))   = 
   [Move piece (King,team,move) | move <- moves,canMake game piece move]
     where moves = [(x,y+1),(x+1,y),(x,y-1),(x-1,y),(x+1,y+1),(x+1,y-1),(x-1,y-1),(x-1,y+1)]
   
