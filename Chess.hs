@@ -1,7 +1,6 @@
 import Data.Ord
 
 data Move = Move Piece Piece
---see if we can get the ascii characters in: https://www.alt-codes.net/chess-symbols.php
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
 data Team = White | Black deriving (Show,Eq)
 
@@ -97,3 +96,12 @@ checkMate game piece = (check game piece)&&(null $ possibleMoves game piece)
 
 take :: Game -> Move -> Game
 take game move = undefined
+
+winner :: Game -> Maybe Winner
+winner game@(whites,blacks) = --should somehow account for stalemates - likely best to consider which combinations of pieces cannot force checkmate and make those cases
+  | any checkmate game [piece | piece <- whites,piece==(King,team,_)] = Just Black
+  | any checkmate game [piece | piece <- blacks,piece==(King,team,_)] = Just White
+  | otherwise = Nothing
+
+toString :: Game -> String
+toString game = undefined--use these: https://www.alt-codes.net/chess-symbols.php
