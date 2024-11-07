@@ -1,4 +1,5 @@
 import Data.Ord
+import Data.List.Split
 
 data Move = Move Piece Piece
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
@@ -8,6 +9,9 @@ type Position = (Int,Int)
 type Game     = ([Piece],[Piece])
 type Winner   = Team
 type Piece    = (PieceType,Team,Position)
+
+getPieceType :: Piece -> PieceType
+getPieceType (a,b,c) = a
 
 opposite :: ([Piece],[Piece]) -> Piece -> [Piece]
 opposite (whites,blacks) (_,White,_) = blacks
@@ -91,17 +95,37 @@ check game piece@(King,_,_) = danger game piece
 check game (_,_,_) = False
 
 --could probably combine check and checkmate with another data type, not sure if worthwhile
-checkMate :: Game -> Piece -> Bool
-checkMate game piece = (check game piece)&&(null $ possibleMoves game piece)
+checkmate :: Game -> Piece -> Bool
+checkmate game piece = (check game piece)&&(null $ possibleMoves game piece)
 
 take :: Game -> Move -> Game
 take game move = undefined
+--the winner function is being difficult, pls help
+{-winner :: Game -> Maybe Winner
+winner game@(whites,blacks)--should somehow account for stalemates - likely best to consider which combinations of pieces cannot force checkmate and make those cases
+  | any (checkmate game (head [piece | piece <- whites,(getPieceType piece)==King])) = Just Black
+  | any (checkmate game (head [piece | piece <- blacks,(getPieceType piece)==King])) = Just White
+  | otherwise = Nothing-}
 
-winner :: Game -> Maybe Winner
-winner game@(whites,blacks) = --should somehow account for stalemates - likely best to consider which combinations of pieces cannot force checkmate and make those cases
-  | any checkmate game [piece | piece <- whites,piece==(King,team,_)] = Just Black
-  | any checkmate game [piece | piece <- blacks,piece==(King,team,_)] = Just White
-  | otherwise = Nothing
+pieceToString :: Piece -> String
+pieceToString (Pawn,Black,_)   = "♟"
+pieceToString (Pawn,White,_)   = "♙"
+pieceToString (Rook,Black,_)   = "♜"
+pieceToString (Rook,White,_)   = "♖"
+pieceToString (Knight,Black,_) = "♞"
+pieceToString (Knight,White,_) = "♘"
+pieceToString (Bishop,Black,_) = "♝"
+pieceToString (Bishop,White,_) = "♗"
+pieceToString (Queen,Black,_)  = "♛"
+pieceToString (Queen,White,_)  = "♕"
+pieceToString (King,Black,_)   = "♚"
+pieceToString (King,White,_)   = "♔"
+
+
 
 toString :: Game -> String
-toString game = undefined--use these: https://www.alt-codes.net/chess-symbols.php
+toString game = undefined
+  --splitOn "," [aux y game | y <- [1..8]]
+    --where aux :: Int -> Game -> String
+          --aux y game = undefined--[pieceToString (,,(x,y)) | x <- [1..8]] not sure how to get the piece type without traversing through the entire game, which seems suboptimal.
+           
