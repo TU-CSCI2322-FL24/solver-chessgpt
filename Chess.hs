@@ -121,8 +121,6 @@ pieceToString (Queen,White,_)  = "♕"
 pieceToString (King,Black,_)   = "♚"
 pieceToString (King,White,_)   = "♔"
 
-
-
 toString :: Game -> String
 toString game = undefined
   --splitOn "," [aux y game | y <- [1..8]]
