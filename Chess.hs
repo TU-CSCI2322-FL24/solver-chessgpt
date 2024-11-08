@@ -6,7 +6,7 @@ data Move = Move Piece Piece
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
 data Team = White | Black deriving (Show,Eq)
 
-type Position = (Int,Int)
+type Position = (Char, Int)
 type Game     = ([Piece],[Piece])
 type Winner   = Team
 type Piece    = (PieceType,Team,Position)
