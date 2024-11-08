@@ -87,7 +87,8 @@ possibleMoves game piece@(Rook,team,(x,y))   =
 possibleMoves game piece@(Knight,team,(x,y)) = 
   [Move piece (Knight,team,move) | move <- moves,canMake game piece move]
     where moves = [(x+3,y+1),(x+1,y+3),(x+3,y-1),(x-1,y+3),(x-3,y+1),(x+1,y-3),(x-1,y-3),(x-3,y-1)]--Jumpin Jesus Huckleberry Christ on a crutch, I have never hated a line of code this much
-possibleMoves game piece@(Bishop,_,(x,y))    = undefined--Not sure how to get this one
+possibleMoves game piece@(Bishop,_,(x,y))    = 
+  where moves = [(x+1,y+1),(x+2,y+2),(x+3,y+3),(x+4,y+4),(x+5,y+5),(x+6,y+6),(x+7,y+7),(x+8,y+8),(x-1,y-1),(x-2,y-2),(x-3,y-3),(x-4,y-4),(x-5,y-5),(x-6,y-6),(x-7,y-7),(x-8,y-8)]--very rough and inefficent, but it should work
 possibleMoves game (Queen,team,(x,y))        = 
   (possibleMoves game (Rook,team,(x,y)))++(possibleMoves game (Bishop,team,(x,y)))
 possibleMoves game piece@(King,team,(x,y))   = 
