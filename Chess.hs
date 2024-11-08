@@ -6,7 +6,7 @@ data Move = Move Piece Piece
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
 data Team = White | Black deriving (Show,Eq)
 
-type Position = (Integer,Integer)
+type Position = (Int, Int)
 type Game     = ([Piece],[Piece])
 type Winner   = Team
 type Piece    = (PieceType,Team,Position)
@@ -128,7 +128,6 @@ pieceToString (Queen,White,_)  = "♕"
 pieceToString (King,Black,_)   = "♚"
 pieceToString (King,White,_)   = "♔"
 
-         
 toString :: Game -> String
 toString game = unlines [rowString y game | y <- [8,7..1]]
     where rowString y game = unwords [cellString (x, y) game | x <- [1..8]]
