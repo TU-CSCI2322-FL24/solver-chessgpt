@@ -128,7 +128,6 @@ pieceToString (Queen,White,_)  = "♕"
 pieceToString (King,Black,_)   = "♚"
 pieceToString (King,White,_)   = "♔"
 
-         
 toString :: Game -> String
 toString game = unlines [rowString y game | y <- [8,7..1]]
     where rowString y game = unwords [cellString (x, y) game | x <- [1..8]]
