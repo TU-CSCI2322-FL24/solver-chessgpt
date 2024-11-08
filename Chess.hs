@@ -1,5 +1,6 @@
 import Data.Ord
 import Data.List.Split
+import Data.Maybe 
 
 data Move = Move Piece Piece
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
@@ -28,6 +29,12 @@ move game@(whites,blacks) (Move old new)
 block :: Game -> Move -> Bool
 block game (Move (Knight,_,(x1,y1)) (Knight,_,(x2,y2))) = False--will need to account for cases where the position is occupied by a member of the same team
 block game (Move _ _) = undefined
+
+getPiece :: Game -> Position -> Maybe Piece -- takes a position and checks whether there is a piece there, if yes then returns Just Piece, if no then returns Nothing
+getPiece (white, black) pos =
+    case [piece | piece <- white ++ black, getPosition piece == pos] of
+        (p:_)   -> Just p
+        []      -> Nothing 
 
 inBounds :: Position -> Bool
 inBounds (x,y) = x>0&&x<9&&y>0&&y<9--this will need to change if we change board size or indexing, ie starting at 0
