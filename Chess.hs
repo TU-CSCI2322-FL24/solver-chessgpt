@@ -8,7 +8,7 @@ data Team = White | Black deriving (Show,Eq)
 
 type Position = (Int, Int)
 type Game     = ([Piece],[Piece])
-type Winner   = Team
+data Winner   = Victor Team | Draw | None
 type Piece    = (PieceType,Team,Position)
 
 getPieceType :: Piece -> PieceType
