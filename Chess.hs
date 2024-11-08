@@ -134,22 +134,21 @@ toString game = unlines [rowString y game | y <- [8,7..1]]
     where rowString y game = unwords [cellString (x, y) game | x <- [1..8]]
           cellString pos game = maybe "." pieceToString (getPiece game pos)
 
-initialGame :: Game
+initialGame :: Game--written with the help of ChatGPT
 initialGame = (whitePieces, blackPieces)
   where
-    whitePawns   = [(Pawn, White, (x, 2)) | x <- [1..8]]
+    whitePawns   = [(Pawn, White, (x, 7)) | x <- [1..8]]
     whitePieces = [
-        (Rook, White, (1, 1)), (Knight, White, (2, 1)), (Bishop, White, (3, 1)), 
-        (Queen, White, (4, 1)), (King, White, (5, 1)), 
-        (Bishop, White, (6, 1)), (Knight, White, (7, 1)), (Rook, White, (8, 1))
+        (Rook, White, (1, 8)), (Knight, White, (2, 8)), (Bishop, White, (3, 8)), 
+        (Queen, White, (4, 8)), (King, White, (5, 8)), 
+        (Bishop, White, (6, 8)), (Knight, White, (7, 8)), (Rook, White, (8, 8))
       ] ++ whitePawns
-    blackPawns   = [(Pawn, Black, (x, 7)) | x <- [1..8]]
+    blackPawns   = [(Pawn, Black, (x, 2)) | x <- [1..8]]
     blackPieces = [
-        (Rook, Black, (1, 8)), (Knight, Black, (2, 8)), (Bishop, Black, (3, 8)), 
-        (Queen, Black, (4, 8)), (King, Black, (5, 8)), 
-        (Bishop, Black, (6, 8)), (Knight, Black, (7, 8)), (Rook, Black, (8, 8))
+        (Rook, Black, (1, 1)), (Knight, Black, (2, 1)), (Bishop, Black, (3, 1)), 
+        (Queen, Black, (4, 1)), (King, Black, (5, 1)), 
+        (Bishop, Black, (6, 1)), (Knight, Black, (7, 1)), (Rook, Black, (8, 1))
       ] ++ blackPawns
 
-printGame :: Game -> IO ()
+printGame :: Game -> IO ()--written with the help of ChatGPT
 printGame game = putStrLn $ toString game
-
