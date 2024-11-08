@@ -128,11 +128,28 @@ pieceToString (Queen,White,_)  = "♕"
 pieceToString (King,Black,_)   = "♚"
 pieceToString (King,White,_)   = "♔"
 
-
-
+         
 toString :: Game -> String
-toString game = undefined
-  --splitOn "," [aux y game | y <- [1..8]]
-    --where aux :: Int -> Game -> String
-          --aux y game = undefined--[pieceToString (,,(x,y)) | x <- [1..8]] not sure how to get the piece type without traversing through the entire game, which seems suboptimal.
-           
+toString game = unlines [rowString y game | y <- [8,7..1]]
+    where rowString y game = unwords [cellString (x, y) game | x <- [1..8]]
+          cellString pos game = maybe "." pieceToString (getPiece game pos)
+
+initialGame :: Game
+initialGame = (whitePieces, blackPieces)
+  where
+    whitePawns   = [(Pawn, White, (x, 2)) | x <- [1..8]]
+    whitePieces = [
+        (Rook, White, (1, 1)), (Knight, White, (2, 1)), (Bishop, White, (3, 1)), 
+        (Queen, White, (4, 1)), (King, White, (5, 1)), 
+        (Bishop, White, (6, 1)), (Knight, White, (7, 1)), (Rook, White, (8, 1))
+      ] ++ whitePawns
+    blackPawns   = [(Pawn, Black, (x, 7)) | x <- [1..8]]
+    blackPieces = [
+        (Rook, Black, (1, 8)), (Knight, Black, (2, 8)), (Bishop, Black, (3, 8)), 
+        (Queen, Black, (4, 8)), (King, Black, (5, 8)), 
+        (Bishop, Black, (6, 8)), (Knight, Black, (7, 8)), (Rook, Black, (8, 8))
+      ] ++ blackPawns
+
+printGame :: Game -> IO ()
+printGame game = putStrLn $ toString game
+
