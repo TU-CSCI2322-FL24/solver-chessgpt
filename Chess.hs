@@ -47,7 +47,7 @@ canMake _ (Pawn,Black,(x1,y1)) (x2,y2) =
   (inBounds (x2,y2))&&((x2==x1)&&(y2==(y1-1))) --white and black pawns move in opposite directions;see notes above for needed additions. This setup assumes black is at the top of the board
 canMake _ (Rook,_,(x1,y1)) (x2,y2)     = 
   (inBounds (x2,y2))&&((x2==x1)||(y2==y1)) --what the hell is castling; inBounds might be kinda redundant here
-canMake _ (Knight,_,(x1,y1)) (x2,y2)   = --Shaan wanted me to format it this way, if you guys think it's ugly you can revert it
+canMake _ (Knight,_,(x1,y1)) (x2,y2)   = 
   (inBounds (x2,y2))&&
   (((x2==(x1+3))&&(y2==(y1+1)))||
    ((x2==(x1+3))&&(y2==(y1-1)))||
@@ -58,7 +58,7 @@ canMake _ (Knight,_,(x1,y1)) (x2,y2)   = --Shaan wanted me to format it this way
    ((x2==(x1+1))&&(y2==(y1-3)))||
    ((x2==(x1-1))&&(y2==(y1-3))))
 canMake _ (Bishop,_,(x1,y1)) (x2,y2)   = 
-  (inBounds (x2,y2))&&((abs (y2-y1))==(abs (x2-x1)))--inBounds might be redundant here
+  (inBounds (x2,y2))&&((abs (y2-y1))==(abs (x2-x1)))
 canMake _ (Queen,_,(x1,y1)) (x2,y2)    = 
   (inBounds (x2,y2))&&(((y2-y1)==(x2-x1))||(x2==x1)||(y2==y1))
 canMake game (King,team,(x1,y1)) (x2,y2)  = 
@@ -77,6 +77,11 @@ getPosition (_,_,(x,y)) = (x,y)
 danger :: Game -> Piece -> Bool
 danger game piece@(a,b,c) = not $ null [op | op <- (opposite game piece), canMake game piece c]
 
+transform :: Piece -> PieceType -> Piece--unsure how to implement - will likely need user input for new type, unless we just make it automatically a queen?
+transform (Pawn,White,(x,8)) newType = (newType,White,(x,8))
+transform (Pawn,Black,(x,1)) newType = (newType,Black,(x,1))
+transform piece _ = piece
+
 possibleMoves :: Game -> Piece -> [Move]
 possibleMoves game piece@(Pawn,team,(x,y))   = 
   [Move piece (Pawn,team,move) | move <- moves,canMake game piece move]
@@ -88,8 +93,8 @@ possibleMoves game piece@(Knight,team,(x,y)) =
   [Move piece (Knight,team,move) | move <- moves,canMake game piece move]
     where moves = [(x+3,y+1),(x+1,y+3),(x+3,y-1),(x-1,y+3),(x-3,y+1),(x+1,y-3),(x-1,y-3),(x-3,y-1)]
 possibleMoves game piece@(Bishop,team,(x,y))    = 
-  [Move piece (Bishop,team,move) | move <- moves,canMake game piece move]
-    where moves = [(x+1,y+1),(x+2,y+2),(x+3,y+3),(x+4,y+4),(x+5,y+5),(x+6,y+6),(x+7,y+7),(x+8,y+8),(x-1,y-1),(x-2,y-2),(x-3,y-3),(x-4,y-4),(x-5,y-5),(x-6,y-6),(x-7,y-7),(x-8,y-8)]--very rough and inefficent, but it should work
+  [Move piece (Bishop,team,move) | move <- moves,canMake game piece move]--ensures moves are in bounds
+    where moves = [(x+1,y+1),(x+2,y+2),(x+3,y+3),(x+4,y+4),(x+5,y+5),(x+6,y+6),(x+7,y+7),(x+8,y+8),(x-1,y-1),(x-2,y-2),(x-3,y-3),(x-4,y-4),(x-5,y-5),(x-6,y-6),(x-7,y-7),(x-8,y-8)]
 possibleMoves game (Queen,team,(x,y))        = 
   (possibleMoves game (Rook,team,(x,y)))++(possibleMoves game (Bishop,team,(x,y)))
 possibleMoves game piece@(King,team,(x,y))   = 
