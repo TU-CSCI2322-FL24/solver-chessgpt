@@ -16,6 +16,12 @@ type Piece = (Position, (PieceType, Team))
 getPieceType :: Piece -> PieceType
 getPieceType (_,(b,_)) = b
 
+getPosition :: Piece -> Position
+getPosition (_,_,(x,y)) = (x,y)
+
+replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
+replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
+
 getPieceTeam :: Piece -> Team
 getPieceTeam (_,(_,c)) = c
 
@@ -161,9 +167,6 @@ check game _ = False
 --could probably combine check and checkmate with another data type, not sure if worthwhile
 checkmate :: Game -> Piece -> Bool
 checkmate game piece = (check game piece) && (null $ possibleMoves game piece)
-
-take :: Game -> Move -> Game
-take game move = undefined
 
 --the winner function is being difficult, pls help
 winner :: Game -> Winner
