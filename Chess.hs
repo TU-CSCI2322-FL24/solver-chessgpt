@@ -2,169 +2,217 @@ import Data.Ord
 import Data.List.Split
 import Data.Maybe 
 
-data Move = Move Piece Piece
+data Move = Move Piece Piece deriving (Show, Eq)
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
 data Team = White | Black deriving (Show,Eq)
 
 type Position = (Int, Int)
-type Game     = ([Piece],[Piece])
-data Winner   = Victor Team | Draw | None
-type Piece    = (PieceType,Team,Position)
-type Piece = (Position, (PType, Team))
+-- type Game     = ([Piece],[Piece])
+type Game = (Team, [Piece], [Piece])
+data Winner   = Victor Team | Draw | None deriving (Show, Eq)
+-- type Piece    = (PieceType,Team,Position)
+type Piece = (Position, (PieceType, Team))
 
 getPieceType :: Piece -> PieceType
-getPieceType (a,b,c) = a
+getPieceType (_,(b,_)) = b
 
 getPosition :: Piece -> Position
 getPosition (_,_,(x,y)) = (x,y)
 
-opposite :: ([Piece],[Piece]) -> Piece -> [Piece]
-opposite (whites,blacks) (_,White,_) = blacks
-opposite (whites,blacks) (_,Black,_) = whites
-
-move :: Game -> Move -> Maybe Game
-move game@(whites,blacks) (Move old new) =
-  case getPiece game of
-      NOthing -> 
-  | taken == Nothing = Nothing
-  | taken `elem` (opposite game new)
-    | old `elem` whites = if (canMake game old (getPosition new)) then Just (replacePiece whites old new,[piece | piece <- pieces, piece /= taken]) else Nothing
-    | old `elem` blacks = if (canMake game old (getPosition new)) then Just (replacePiece blacks old new,[piece | piece <- pieces, piece /= taken]) else Nothing
-  | otherwise = 
-    | old `elem` whites = if (canMake game old (getPosition new)) then Just (replacePiece whites old new,blacks) else Nothing
-    | old `elem` blacks = if (canMake game old (getPosition new)) then Just (whites,replacePiece blacks old new) else Nothing
-    where taken 
-      case (getPiece game (getPosition new)) of
-          Just piece -> piece
-          Nothing -> Nothing
-
 replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
 replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
 
-block :: Game -> Move -> Bool
-block game (Move (Knight,_,(x1,y1)) (Knight,_,(x2,y2))) = False--will need to account for cases where the position is occupied by a member of the same team
-block game (Move _ _) = undefined
+getPieceTeam :: Piece -> Team
+getPieceTeam (_,(_,c)) = c
 
-getPiece :: Game -> Position -> Maybe Piece -- takes a position and checks whether there is a piece there, if yes then returns Just Piece, if no then returns Nothing
-getPiece (white, black) pos =
+getPosition :: Piece -> Position
+getPosition ((x,y), (_,_)) = (x,y)
+
+-- takes a position and checks whether there is a piece there, if yes then returns Just Piece, if no then returns Nothing
+getPiece :: Game -> Position -> Maybe Piece 
+getPiece (_, white, black) pos =
     case [piece | piece <- white ++ black, getPosition piece == pos] of
         (p:_)   -> Just p
         []      -> Nothing 
 
-inBounds :: Position -> Bool
-inBounds (x,y) = x>0&&x<9&&y>0&&y<9--this will need to change if we change board size or indexing, ie starting at 0
+opposite :: Game -> Piece -> [Piece]
+opposite (_, whites,blacks) (_, (_, White)) = blacks
+opposite (_, whites,blacks) (_, (_, Black)) = whites
 
---will need refining for special cases; will need to write a function to block all pieces except knight when obstructed (above)
+oppositeTeam :: Team -> Team
+oppositeTeam White = Black
+oppositeTeam Black = White
+
+move :: Game -> Move -> Maybe Game
+move game@(team, whites,blacks) (Move old new) 
+  | old `elem` whites = if (canMake game old (getPosition new)) then Just (oppositeTeam team, replacePiece whites old new,blacks) else Nothing
+  | old `elem` blacks = if (canMake game old (getPosition new)) then Just (oppositeTeam team, whites,replacePiece blacks old new) else Nothing
+  | otherwise         = Nothing
+    where replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
+          replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
+
+inBounds :: Position -> Bool
+inBounds (x,y) = x>0 && x<9 && y>0 && y<9 --this will need to change if we change board size or indexing, ie starting at 0
+
+-- returns true if the diagonal is clear, false if it blocked
+diagClear :: Game -> Position -> Position -> Bool
+diagClear game (x1, y1) (x2, y2) = all (isNothing . getPiece game) positions
+    where dx = signum (x2 - x1)
+          dy = signum (y2 - y1)
+          positions = takeWhile (/= (x2, y2)) $ tail [(x1 + i * dx, y1 + i * dy) | i <- [1..]]
+
+-- returns true if the row/column is clear, false if is blocked
+rowClear :: Game -> Position -> Position -> Bool
+rowClear game (x1, y1) (x2, y2)
+    | x1 == x2 = all (isNothing . getPiece game) [(x1, y) | y <- [min y1 y2 + 1 .. max y1 y2 - 1]]
+    | y1 == y2 = all (isNothing . getPiece game) [(x, y1) | x <- [min x1 x2 + 1 .. max x1 x2 - 1]]
+    | otherwise = False
+
+-- returns true if the move can be made, and returns false if it cannot be made
+-- checks whether a move is in the bounds of the board
+-- checks that a move is valid for the given piece
+-- checks that no piece of either color blocks the move
+-- checks that the destination position is not currently occupied by a piece of the same color 
+    -- if the destination is occupied by an opposite colored piece, returns true
 canMake :: Game -> Piece -> Position -> Bool
-canMake _ (Pawn,White,(x1,y1)) (x2,y2) = 
-  (inBounds (x2,y2))&&((x2==x1)&&(y2==(y1+1))) --add diagonals to take pieces and the second space for the first move; also need a transformation function for when they reach the end of the board
-canMake _ (Pawn,Black,(x1,y1)) (x2,y2) = 
-  (inBounds (x2,y2))&&((x2==x1)&&(y2==(y1-1))) --white and black pawns move in opposite directions;see notes above for needed additions. This setup assumes black is at the top of the board
-canMake _ (Rook,_,(x1,y1)) (x2,y2)     = 
-  (inBounds (x2,y2))&&((x2==x1)||(y2==y1)) --what the hell is castling; inBounds might be kinda redundant here
-canMake _ (Knight,_,(x1,y1)) (x2,y2)   = 
-  (inBounds (x2,y2))&&
-  (((x2==(x1+3))&&(y2==(y1+1)))||
-   ((x2==(x1+3))&&(y2==(y1-1)))||
-   ((x2==(x1-3))&&(y2==(y1+1)))||
-   ((x2==(x1-3))&&(y2==(y1-1)))||
-   ((x2==(x1+1))&&(y2==(y1+3)))||
-   ((x2==(x1-1))&&(y2==(y1+3)))||
-   ((x2==(x1+1))&&(y2==(y1-3)))||
-   ((x2==(x1-1))&&(y2==(y1-3))))
-canMake _ (Bishop,_,(x1,y1)) (x2,y2)   = 
-  (inBounds (x2,y2))&&((abs (y2-y1))==(abs (x2-x1)))
-canMake _ (Queen,_,(x1,y1)) (x2,y2)    = 
-  (inBounds (x2,y2))&&(((y2-y1)==(x2-x1))||(x2==x1)||(y2==y1))
-canMake game (King,team,(x1,y1)) (x2,y2)  = 
-  (inBounds (x2,y2))&&
-  (not $ check game (King,team,(x2,y2)))&&
-  (((x2==(x1+1))&&(y2==(y1+1)))||
-  ((x2==x1)&&(y2==(y1+1)))||
-  ((x2==(x1+1))&&(y2==y1))||
-  ((x2==(x1-1))&&(y2==(y1-1)))||
-  ((x2==(x1-1))&&(y2==y1))||
-  ((x2==x1)&&(y2==(y1-1))))
+canMake game ((x1, y1), (Pawn, White)) (x2, y2) =
+    inBounds (x2, y2) &&
+    (x2 == x1 && y2 == y1 + 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
+    (x2 == x1 && y1 == 2 && y2 == 4 && isNothing (getPiece game (x2, 3)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
+    (abs (x2 - x1) == 1 && y2 == y1 + 1 &&  
+    case getPiece game (x2, y2) of -- diagonal capture
+        Just target -> getPieceTeam target == Black
+        Nothing     -> False)
+canMake game ((x1, y1), (Pawn, Black)) (x2, y2) =
+    inBounds (x2, y2) &&
+    (x2 == x1 && y2 == y1 - 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
+    (x2 == x1 && y1 == 7 && y2 == 5 && isNothing (getPiece game (x2, 6)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
+    (abs (x2 - x1) == 1 && y2 == y1 - 1 &&
+    case getPiece game (x2, y2) of -- diagonal capture
+        Just target -> getPieceTeam target == White
+        Nothing     -> False)
+canMake game piece@((x1, y1), (Rook, _)) (x2, y2) =
+    inBounds (x2, y2) &&
+    ((x2 == x1 || y2 == y1) && rowClear game (x1, y1) (x2, y2)) &&  -- clear row/column
+    canCapture game (x2, y2) piece
+canMake game piece@((x1, y1), (Knight, _)) (x2, y2) =
+    inBounds (x2, y2) &&
+    ((abs (x2 - x1), abs (y2 - y1)) `elem` [(2, 1), (1, 2)]) &&
+    canCapture game (x2, y2) piece
+canMake game piece@((x1, y1), (Bishop, _)) (x2, y2) =
+    inBounds (x2, y2) &&
+    abs (x2 - x1) == abs (y2 - y1) &&  -- diagonal check
+    diagClear game (x1, y1) (x2, y2) &&
+    canCapture game (x2, y2) piece
+canMake game piece@((x1, y1), (Queen, _)) (x2, y2) =
+    inBounds (x2, y2) &&
+    ((x2 == x1 || y2 == y1) && rowClear game (x1, y1) (x2, y2) ||  -- rook-like move
+     abs (x2 - x1) == abs (y2 - y1) && diagClear game (x1, y1) (x2, y2)) &&  -- bishop-like move
+    canCapture game (x2, y2) piece
+canMake game piece@((x1, y1), (King, team)) (x2, y2) =
+    inBounds (x2, y2) &&
+    abs (x2 - x1) <= 1 && abs (y2 - y1) <= 1 &&  -- one-square in any direction
+    canCapture game (x2, y2) piece &&
+    not (danger game ((x1, y1), (King, team)))  -- ensure king is not moving into check
+
+-- takes a game, position, and piece and checks whether the position is currently occupied 
+    -- if the piece is the same color -> return false  
+    -- if the piece is the opposite color -> return true
+    -- if there is no piece -> return true
+canCapture :: Game -> Position -> Piece -> Bool
+canCapture game (x, y) og = 
+    case getPiece game (x, y) of 
+        Just target -> getPieceTeam target /= getPieceTeam og
+        Nothing     -> True
 
 danger :: Game -> Piece -> Bool
-danger game piece@(a,b,c) = not $ null [op | op <- (opposite game piece), canMake game piece c]
+danger game piece@(pos, (_, _)) = not $ null [op | op <- (opposite game piece), canMake game op pos]
 
-transform :: Piece -> PieceType -> Piece--unsure how to implement - will likely need user input for new type, unless we just make it automatically a queen?
-transform (Pawn,White,(x,8)) newType = (newType,White,(x,8))
-transform (Pawn,Black,(x,1)) newType = (newType,Black,(x,1))
-transform piece _ = piece
+promote :: Piece -> Piece--unsure how to implement - will likely need user input for new type, unless we just make it automatically a queen?
+promote ((x, 8), (Pawn, White)) = ((x, 8), (Queen, White))
+promote ((x, 1), (Pawn, Black)) = ((x, 1), (Queen, Black))
+promote piece = piece
 
 possibleMoves :: Game -> Piece -> [Move]
-possibleMoves game piece@(Pawn,team,(x,y))   = 
-  [Move piece (Pawn,team,move) | move <- moves,canMake game piece move]
+possibleMoves game piece@((x, y), (Pawn, team))   = 
+  [Move piece (move, (Pawn, team)) | move <- moves, canMake game piece move]
     where moves = [(x,y+1),(x,y+2),(x,y-1),(x,y-2)]
-possibleMoves game piece@(Rook,team,(x,y))   = 
-  [Move (Rook,team,(x,y)) (Rook,team,(x,ys)) | ys <- [1..8],canMake game piece (x,ys)]++
-  [Move (Rook,team,(x,y)) (Rook,team,(xs,y)) | xs <- [1..8],canMake game piece (xs,y)]
-possibleMoves game piece@(Knight,team,(x,y)) = 
-  [Move piece (Knight,team,move) | move <- moves,canMake game piece move]
+possibleMoves game piece@((x, y), (Rook, team))   = 
+  [Move ((x, y), (Rook,team) ) ((x, ys), (Rook,team)) | ys <- [1..8], canMake game piece (x,ys)] ++
+  [Move ((x, y), (Rook,team) ) ((xs, y), (Rook,team)) | xs <- [1..8], canMake game piece (xs,y)]
+possibleMoves game piece@((x,y), (Knight, team)) = 
+  [Move piece (move, (Knight,team)) | move <- moves,canMake game piece move]
     where moves = [(x+3,y+1),(x+1,y+3),(x+3,y-1),(x-1,y+3),(x-3,y+1),(x+1,y-3),(x-1,y-3),(x-3,y-1)]
-possibleMoves game piece@(Bishop,team,(x,y))    = 
-  [Move piece (Bishop,team,move) | move <- moves,canMake game piece move]--ensures moves are in bounds
+possibleMoves game piece@((x, y), (Bishop, team))    = 
+  [Move piece (move, (Bishop, team)) | move <- moves,canMake game piece move]--ensures moves are in bounds
     where moves = [(x+1,y+1),(x+2,y+2),(x+3,y+3),(x+4,y+4),(x+5,y+5),(x+6,y+6),(x+7,y+7),(x+8,y+8),(x-1,y-1),(x-2,y-2),(x-3,y-3),(x-4,y-4),(x-5,y-5),(x-6,y-6),(x-7,y-7),(x-8,y-8)]
-possibleMoves game (Queen,team,(x,y))        = 
-  (possibleMoves game (Rook,team,(x,y)))++(possibleMoves game (Bishop,team,(x,y)))
-possibleMoves game piece@(King,team,(x,y))   = 
-  [Move piece (King,team,move) | move <- moves,canMake game piece move]
+possibleMoves game ((x,y), (Queen, team))        = 
+  (possibleMoves game ((x,y), (Rook, team))) ++ (possibleMoves game ((x,y), (Bishop,team)))
+possibleMoves game piece@((x,y), (King, team))   = 
+  [Move piece (move, (King, team)) | move <- moves,canMake game piece move]
     where moves = [(x,y+1),(x+1,y),(x,y-1),(x-1,y),(x+1,y+1),(x+1,y-1),(x-1,y-1),(x-1,y+1)]
   
 safeMoves :: Game -> Piece -> [Move]
 safeMoves game piece = [move | move@(Move old new) <- (possibleMoves game piece), not $ danger game new]
 
+possibleGameMoves :: Game -> [Move]
+possibleGameMoves game@(team, whites, blacks) = 
+  let pieces = if team == White then whites else blacks
+  in concat [possibleMoves game p | p <- pieces]
+
 check :: Game -> Piece -> Bool
-check game piece@(King,_,_) = danger game piece
-check game (_,_,_) = False
+check game piece@(_, (King, _)) = danger game piece
+check game _ = False
 
 --could probably combine check and checkmate with another data type, not sure if worthwhile
 checkmate :: Game -> Piece -> Bool
-checkmate game piece = (check game piece)&&(null $ possibleMoves game piece)
+checkmate game piece = (check game piece) && (null $ possibleMoves game piece)
 
 --the winner function is being difficult, pls help
-{-winner :: Game -> Maybe Winner
-winner game@(whites,blacks)--should somehow account for stalemates - likely best to consider which combinations of pieces cannot force checkmate and make those cases
-  | any (checkmate game (head [piece | piece <- whites,(getPieceType piece)==King])) = Just Black
-  | any (checkmate game (head [piece | piece <- blacks,(getPieceType piece)==King])) = Just White
-  | otherwise = Nothing-}
+winner :: Game -> Winner
+winner game@(_, whites, blacks)--should somehow account for stalemates - likely best to consider which combinations of pieces cannot force checkmate and make those cases
+  | checkmate game (head [piece | piece <- whites,(getPieceType piece)==King]) = Victor Black
+  | checkmate game (head [piece | piece <- blacks,(getPieceType piece)==King]) = Victor White
+  | otherwise = None
 
 pieceToString :: Piece -> String
-pieceToString (Pawn,Black,_)   = "♟"
-pieceToString (Pawn,White,_)   = "♙"
-pieceToString (Rook,Black,_)   = "♜"
-pieceToString (Rook,White,_)   = "♖"
-pieceToString (Knight,Black,_) = "♞"
-pieceToString (Knight,White,_) = "♘"
-pieceToString (Bishop,Black,_) = "♝"
-pieceToString (Bishop,White,_) = "♗"
-pieceToString (Queen,Black,_)  = "♛"
-pieceToString (Queen,White,_)  = "♕"
-pieceToString (King,Black,_)   = "♚"
-pieceToString (King,White,_)   = "♔"
+pieceToString (_, (Pawn, Black))   = "♙"
+pieceToString (_, (Pawn, White))   = "♟"
+pieceToString (_, (Rook, Black))   = "♖"
+pieceToString (_, (Rook, White))   = "♜"
+pieceToString (_, (Knight, Black)) = "♘"
+pieceToString (_, (Knight, White)) = "♞"
+pieceToString (_, (Bishop, Black)) = "♗"
+pieceToString (_, (Bishop, White)) = "♝"
+pieceToString (_, (Queen, Black))  = "♕"
+pieceToString (_, (Queen, White))  = "♛"
+pieceToString (_, (King, Black))   = "♔"
+pieceToString (_, (King, White))   = "♚"
+
 
 toString :: Game -> String
 toString game = unlines [rowString y game | y <- [8,7..1]]
     where rowString y game = unwords [cellString (x, y) game | x <- [1..8]]
           cellString pos game = maybe "." pieceToString (getPiece game pos)
 
-initialGame :: Game--written with the help of ChatGPT
-initialGame = (whitePieces, blackPieces)
+-- Written with the help of ChatGPT
+initialGame :: Game
+initialGame = (White, whitePieces, blackPieces)
   where
-    whitePawns   = [(Pawn, White, (x, 7)) | x <- [1..8]]
+    whitePawns   = [((x, 2), (Pawn, White)) | x <- [1..8]]
     whitePieces = [
-        (Rook, White, (1, 8)), (Knight, White, (2, 8)), (Bishop, White, (3, 8)), 
-        (Queen, White, (4, 8)), (King, White, (5, 8)), 
-        (Bishop, White, (6, 8)), (Knight, White, (7, 8)), (Rook, White, (8, 8))
+        ((1, 1), (Rook, White)), ((2, 1), (Knight, White)), ((3, 1), (Bishop, White)),
+        ((4, 1), (Queen, White)), ((5, 1), (King, White)),
+        ((6, 1), (Bishop, White)), ((7, 1), (Knight, White)), ((8, 1), (Rook, White))
       ] ++ whitePawns
-    blackPawns   = [(Pawn, Black, (x, 2)) | x <- [1..8]]
+
+    blackPawns   = [((x, 7), (Pawn, Black)) | x <- [1..8]]
     blackPieces = [
-        (Rook, Black, (1, 1)), (Knight, Black, (2, 1)), (Bishop, Black, (3, 1)), 
-        (Queen, Black, (4, 1)), (King, Black, (5, 1)), 
-        (Bishop, Black, (6, 1)), (Knight, Black, (7, 1)), (Rook, Black, (8, 1))
+        ((1, 8), (Rook, Black)), ((2, 8), (Knight, Black)), ((3, 8), (Bishop, Black)),
+        ((4, 8), (Queen, Black)), ((5, 8), (King, Black)),
+        ((6, 8), (Bishop, Black)), ((7, 8), (Knight, Black)), ((8, 8), (Rook, Black))
       ] ++ blackPawns
+
 
 printGame :: Game -> IO ()--written with the help of ChatGPT
 printGame game = putStrLn $ toString game
