@@ -10,21 +10,36 @@ type Position = (Int, Int)
 type Game     = ([Piece],[Piece])
 data Winner   = Victor Team | Draw | None
 type Piece    = (PieceType,Team,Position)
+type Piece = (Position, (PType, Team))
 
 getPieceType :: Piece -> PieceType
 getPieceType (a,b,c) = a
+
+getPosition :: Piece -> Position
+getPosition (_,_,(x,y)) = (x,y)
 
 opposite :: ([Piece],[Piece]) -> Piece -> [Piece]
 opposite (whites,blacks) (_,White,_) = blacks
 opposite (whites,blacks) (_,Black,_) = whites
 
-move :: Game -> Move -> Game
-move game@(whites,blacks) (Move old new) 
-  | old `elem` whites = if (canMake game old (getPosition new)) then (replacePiece whites old new,blacks) else error "can't move there"
-  | old `elem` blacks = if (canMake game old (getPosition new)) then (whites,replacePiece blacks old new) else error "can't move there"
-  | otherwise         = error "piece be upon you"
-    where replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
-          replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
+move :: Game -> Move -> Maybe Game
+move game@(whites,blacks) (Move old new) =
+  case getPiece game of
+      NOthing -> 
+  | taken == Nothing = Nothing
+  | taken `elem` (opposite game new)
+    | old `elem` whites = if (canMake game old (getPosition new)) then Just (replacePiece whites old new,[piece | piece <- pieces, piece /= taken]) else Nothing
+    | old `elem` blacks = if (canMake game old (getPosition new)) then Just (replacePiece blacks old new,[piece | piece <- pieces, piece /= taken]) else Nothing
+  | otherwise = 
+    | old `elem` whites = if (canMake game old (getPosition new)) then Just (replacePiece whites old new,blacks) else Nothing
+    | old `elem` blacks = if (canMake game old (getPosition new)) then Just (whites,replacePiece blacks old new) else Nothing
+    where taken 
+      case (getPiece game (getPosition new)) of
+          Just piece -> piece
+          Nothing -> Nothing
+
+replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
+replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
 
 block :: Game -> Move -> Bool
 block game (Move (Knight,_,(x1,y1)) (Knight,_,(x2,y2))) = False--will need to account for cases where the position is occupied by a member of the same team
@@ -71,9 +86,6 @@ canMake game (King,team,(x1,y1)) (x2,y2)  =
   ((x2==(x1-1))&&(y2==y1))||
   ((x2==x1)&&(y2==(y1-1))))
 
-getPosition :: Piece -> Position
-getPosition (_,_,(x,y)) = (x,y)
-
 danger :: Game -> Piece -> Bool
 danger game piece@(a,b,c) = not $ null [op | op <- (opposite game piece), canMake game piece c]
 
@@ -112,8 +124,6 @@ check game (_,_,_) = False
 checkmate :: Game -> Piece -> Bool
 checkmate game piece = (check game piece)&&(null $ possibleMoves game piece)
 
-take :: Game -> Move -> Game
-take game move = undefined
 --the winner function is being difficult, pls help
 {-winner :: Game -> Maybe Winner
 winner game@(whites,blacks)--should somehow account for stalemates - likely best to consider which combinations of pieces cannot force checkmate and make those cases
