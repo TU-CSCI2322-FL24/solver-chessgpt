@@ -22,7 +22,8 @@ getPieceTeam (_,(_,c)) = c
 getPosition :: Piece -> Position
 getPosition ((x,y), (_,_)) = (x,y)
 
-getPiece :: Game -> Position -> Maybe Piece -- takes a position and checks whether there is a piece there, if yes then returns Just Piece, if no then returns Nothing
+-- takes a position and checks whether there is a piece there, if yes then returns Just Piece, if no then returns Nothing
+getPiece :: Game -> Position -> Maybe Piece 
 getPiece (_, white, black) pos =
     case [piece | piece <- white ++ black, getPosition piece == pos] of
         (p:_)   -> Just p
@@ -108,6 +109,10 @@ canMake game piece@((x1, y1), (King, team)) (x2, y2) =
     canCapture game (x2, y2) piece &&
     not (danger game ((x1, y1), (King, team)))  -- ensure king is not moving into check
 
+-- takes a game, position, and piece and checks whether the position is currently occupied 
+    -- if the piece is the same color -> return false  
+    -- if the piece is the opposite color -> return true
+    -- if there is no piece -> return true
 canCapture :: Game -> Position -> Piece -> Bool
 canCapture game (x, y) og = 
     case getPiece game (x, y) of 
