@@ -16,6 +16,12 @@ type Piece = (Position, (PieceType, Team))
 getPieceType :: Piece -> PieceType
 getPieceType (_,(b,_)) = b
 
+getPieceTeam :: Piece -> Team
+getPieceTeam (_,(_,c)) = c
+
+getPosition :: Piece -> Position
+getPosition ((x,y), (_,_)) = (x,y)
+
 getPiece :: Game -> Position -> Maybe Piece -- takes a position and checks whether there is a piece there, if yes then returns Just Piece, if no then returns Nothing
 getPiece (_, white, black) pos =
     case [piece | piece <- white ++ black, getPosition piece == pos] of
@@ -38,48 +44,83 @@ move game@(team, whites,blacks) (Move old new)
     where replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
           replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
 
-block :: Game -> Move -> Bool
-block game (Move ((x1,y1), (Knight,_)) ((x2,y2), (Knight,_))) = False--will need to account for cases where the position is occupied by a member of the same team
-block game (Move _ _) = undefined
-
 inBounds :: Position -> Bool
-inBounds (x,y) = x>0 && x<9 && y>0 && y<9--this will need to change if we change board size or indexing, ie starting at 0
+inBounds (x,y) = x>0 && x<9 && y>0 && y<9 --this will need to change if we change board size or indexing, ie starting at 0
 
---will need refining for special cases; will need to write a function to block all pieces except knight when obstructed (above)
+-- returns true if the diagonal is clear, false if it blocked
+diagClear :: Game -> Position -> Position -> Bool
+diagClear game (x1, y1) (x2, y2) = all (isNothing . getPiece game) positions
+    where dx = signum (x2 - x1)
+          dy = signum (y2 - y1)
+          positions = takeWhile (/= (x2, y2)) $ tail [(x1 + i * dx, y1 + i * dy) | i <- [1..]]
+
+-- returns true if the row/column is clear, false if is blocked
+rowClear :: Game -> Position -> Position -> Bool
+rowClear game (x1, y1) (x2, y2)
+    | x1 == x2 = all (isNothing . getPiece game) [(x1, y) | y <- [min y1 y2 + 1 .. max y1 y2 - 1]]
+    | y1 == y2 = all (isNothing . getPiece game) [(x, y1) | x <- [min x1 x2 + 1 .. max x1 x2 - 1]]
+    | otherwise = False
+
+-- returns true if the move can be made, and returns false if it cannot be made
+-- checks whether a move is in the bounds of the board
+-- checks that a move is valid for the given piece
+-- checks that no piece of either color blocks the move
+-- checks that the destination position is not currently occupied by a piece of the same color 
+    -- if the destination is occupied by an opposite colored piece, returns true
 canMake :: Game -> Piece -> Position -> Bool
-canMake _ _ _ = True
--- canMake _ (Pawn,White,(x1,y1)) (x2,y2) = 
---   (inBounds (x2,y2))&&((x2==x1)&&(y2==(y1+1))) --add diagonals to take pieces and the second space for the first move; also need a transformation function for when they reach the end of the board
--- canMake _ (Pawn,Black,(x1,y1)) (x2,y2) = 
---   (inBounds (x2,y2))&&((x2==x1)&&(y2==(y1-1))) --white and black pawns move in opposite directions;see notes above for needed additions. This setup assumes black is at the top of the board
--- canMake _ (Rook,_,(x1,y1)) (x2,y2)     = 
---   (inBounds (x2,y2))&&((x2==x1)||(y2==y1)) --what the hell is castling; inBounds might be kinda redundant here
--- canMake _ (Knight,_,(x1,y1)) (x2,y2)   = 
---   (inBounds (x2,y2))&&
---   (((x2==(x1+3))&&(y2==(y1+1)))||
---    ((x2==(x1+a (x2,y2))&&((abs (y2-y1))==(abs (x2-x1)))
--- canMake _ (Queen,_,(x1,y1)) (x2,y2)    = 
---   (inBounds (x2,y2))&&(((y2-y1)==(x2-x1))||(x2==x1)||(y2==y1))
--- canMake game (King,team,(x1,y1)) (x2,y2)  = 
---   (inBounds (x2,y2))&&
---   (not $ check game (King,team,(x2,y2)))&&
---   (((x2==(x1+1))&&(y2==(y1+1)))||
---   ((x2==x1)&&(y2==(y1+1)))||
---   ((x2==(x1+1))&&(y2==y1))||
---   ((x2==(x1-1))&&(y2==(y1-1)))||
---   ((x2==(x1-1))&&(y2==y1))||
---   ((x2==x1)&&(y2==(y1-1))))
+canMake game ((x1, y1), (Pawn, White)) (x2, y2) =
+    inBounds (x2, y2) &&
+    (x2 == x1 && y2 == y1 + 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
+    (x2 == x1 && y1 == 2 && y2 == 4 && isNothing (getPiece game (x2, 3)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
+    (abs (x2 - x1) == 1 && y2 == y1 + 1 &&  
+    case getPiece game (x2, y2) of -- diagonal capture
+        Just target -> getPieceTeam target == Black
+        Nothing     -> False)
+canMake game ((x1, y1), (Pawn, Black)) (x2, y2) =
+    inBounds (x2, y2) &&
+    (x2 == x1 && y2 == y1 - 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
+    (x2 == x1 && y1 == 7 && y2 == 5 && isNothing (getPiece game (x2, 6)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
+    (abs (x2 - x1) == 1 && y2 == y1 - 1 &&
+    case getPiece game (x2, y2) of -- diagonal capture
+        Just target -> getPieceTeam target == White
+        Nothing     -> False)
+canMake game piece@((x1, y1), (Rook, _)) (x2, y2) =
+    inBounds (x2, y2) &&
+    ((x2 == x1 || y2 == y1) && rowClear game (x1, y1) (x2, y2)) &&  -- clear row/column
+    canCapture game (x2, y2) piece
+canMake game piece@((x1, y1), (Knight, _)) (x2, y2) =
+    inBounds (x2, y2) &&
+    ((abs (x2 - x1), abs (y2 - y1)) `elem` [(2, 1), (1, 2)]) &&
+    canCapture game (x2, y2) piece
+canMake game piece@((x1, y1), (Bishop, _)) (x2, y2) =
+    inBounds (x2, y2) &&
+    abs (x2 - x1) == abs (y2 - y1) &&  -- diagonal check
+    diagClear game (x1, y1) (x2, y2) &&
+    canCapture game (x2, y2) piece
+canMake game piece@((x1, y1), (Queen, _)) (x2, y2) =
+    inBounds (x2, y2) &&
+    ((x2 == x1 || y2 == y1) && rowClear game (x1, y1) (x2, y2) ||  -- rook-like move
+     abs (x2 - x1) == abs (y2 - y1) && diagClear game (x1, y1) (x2, y2)) &&  -- bishop-like move
+    canCapture game (x2, y2) piece
+canMake game piece@((x1, y1), (King, team)) (x2, y2) =
+    inBounds (x2, y2) &&
+    abs (x2 - x1) <= 1 && abs (y2 - y1) <= 1 &&  -- one-square in any direction
+    canCapture game (x2, y2) piece &&
+    not (danger game ((x1, y1), (King, team)))  -- ensure king is not moving into check
 
-getPosition :: Piece -> Position
-getPosition ((x, y), (_, _)) = (x,y)
+canCapture :: Game -> Position -> Piece -> Bool
+canCapture game (x, y) og = 
+    case getPiece game (x, y) of 
+        Just target -> getPieceTeam target /= getPieceTeam og
+        Nothing     -> True
 
 danger :: Game -> Piece -> Bool
 danger game piece@(pos, (_, _)) = not $ null [op | op <- (opposite game piece), canMake game op pos]
 
-promote :: Piece -> PieceType -> Piece--unsure how to implement - will likely need user input for new type, unless we just make it automatically a queen?
+promote :: Piece -> Piece--unsure how to implement - will likely need user input for new type, unless we just make it automatically a queen?
 promote ((x, 8), (Pawn, White)) = ((x, 8), (Queen, White))
 promote ((x, 1), (Pawn, Black)) = ((x, 1), (Queen, Black))
-promote piece _ = piece
+promote piece = piece
 
 possibleMoves :: Game -> Piece -> [Move]
 possibleMoves game piece@((x, y), (Pawn, team))   = 
