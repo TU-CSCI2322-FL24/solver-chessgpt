@@ -2,13 +2,13 @@ import Data.Ord
 import Data.List.Split
 import Data.Maybe 
 
-data Move = Move Piece Piece
+data Move = Move Piece Piece deriving (Show, Eq)
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
 data Team = White | Black deriving (Show,Eq)
 
 type Position = (Int, Int)
 type Game     = ([Piece],[Piece])
-data Winner   = Victor Team | Draw | None
+data Winner   = Victor Team | Draw | None deriving (Show, Eq)
 type Piece    = (PieceType,Team,Position)
 
 getPieceType :: Piece -> PieceType
@@ -18,11 +18,11 @@ opposite :: ([Piece],[Piece]) -> Piece -> [Piece]
 opposite (whites,blacks) (_,White,_) = blacks
 opposite (whites,blacks) (_,Black,_) = whites
 
-move :: Game -> Move -> Game
+move :: Game -> Move -> Maybe Game
 move game@(whites,blacks) (Move old new) 
-  | old `elem` whites = if (canMake game old (getPosition new)) then (replacePiece whites old new,blacks) else error "can't move there"
-  | old `elem` blacks = if (canMake game old (getPosition new)) then (whites,replacePiece blacks old new) else error "can't move there"
-  | otherwise         = error "piece be upon you"
+  | old `elem` whites = if (canMake game old (getPosition new)) then Just (replacePiece whites old new,blacks) else Nothing
+  | old `elem` blacks = if (canMake game old (getPosition new)) then Just (whites,replacePiece blacks old new) else Nothing
+  | otherwise         = Nothing
     where replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
           replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
 
@@ -77,10 +77,10 @@ getPosition (_,_,(x,y)) = (x,y)
 danger :: Game -> Piece -> Bool
 danger game piece@(a,b,c) = not $ null [op | op <- (opposite game piece), canMake game piece c]
 
-transform :: Piece -> PieceType -> Piece--unsure how to implement - will likely need user input for new type, unless we just make it automatically a queen?
-transform (Pawn,White,(x,8)) newType = (newType,White,(x,8))
-transform (Pawn,Black,(x,1)) newType = (newType,Black,(x,1))
-transform piece _ = piece
+promote :: Piece -> PieceType -> Piece--unsure how to implement - will likely need user input for new type, unless we just make it automatically a queen?
+promote (Pawn,White,(x,8)) newType = (newType,White,(x,8))
+promote (Pawn,Black,(x,1)) newType = (newType,Black,(x,1))
+promote piece _ = piece
 
 possibleMoves :: Game -> Piece -> [Move]
 possibleMoves game piece@(Pawn,team,(x,y))   = 
@@ -104,6 +104,9 @@ possibleMoves game piece@(King,team,(x,y))   =
 safeMoves :: Game -> Piece -> [Move]
 safeMoves game piece = [move | move@(Move old new) <- (possibleMoves game piece), not $ danger game new]
 
+possibleGameMoves :: Game -> [Move]
+
+
 check :: Game -> Piece -> Bool
 check game piece@(King,_,_) = danger game piece
 check game (_,_,_) = False
@@ -114,12 +117,13 @@ checkmate game piece = (check game piece)&&(null $ possibleMoves game piece)
 
 take :: Game -> Move -> Game
 take game move = undefined
+
 --the winner function is being difficult, pls help
-{-winner :: Game -> Maybe Winner
+winner :: Game -> Winner
 winner game@(whites,blacks)--should somehow account for stalemates - likely best to consider which combinations of pieces cannot force checkmate and make those cases
-  | any (checkmate game (head [piece | piece <- whites,(getPieceType piece)==King])) = Just Black
-  | any (checkmate game (head [piece | piece <- blacks,(getPieceType piece)==King])) = Just White
-  | otherwise = Nothing-}
+  | checkmate game (head [piece | piece <- whites,(getPieceType piece)==King]) = Victor Black
+  | checkmate game (head [piece | piece <- blacks,(getPieceType piece)==King]) = Victor White
+  | otherwise = None
 
 pieceToString :: Piece -> String
 pieceToString (Pawn,Black,_)   = "♟"
