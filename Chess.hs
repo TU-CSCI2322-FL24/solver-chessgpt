@@ -1,8 +1,9 @@
 import Data.Ord
+import Data.List
 import Data.List.Split
 import Data.Maybe 
 
-data Move = Move Piece Piece deriving (Show, Eq)
+data Move = Move Piece Position deriving (Show, Eq)
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
 data Team = White | Black deriving (Show,Eq)
 
@@ -22,6 +23,11 @@ getPieceTeam (_,(_,c)) = c
 getPosition :: Piece -> Position
 getPosition ((x,y), (_,_)) = (x,y)
 
+getTeamPieces :: Game -> Team -> [Piece]
+getTeamPieces game@(_, whites, blacks) team
+  | team == White = whites
+  | otherwise = blacks
+
 -- takes a position and checks whether there is a piece there, if yes then returns Just Piece, if no then returns Nothing
 getPiece :: Game -> Position -> Maybe Piece 
 getPiece (_, white, black) pos =
@@ -38,12 +44,16 @@ oppositeTeam White = Black
 oppositeTeam Black = White
 
 move :: Game -> Move -> Maybe Game
-move game@(team, whites,blacks) (Move old new) 
-  | old `elem` whites = if (canMake game old (getPosition new)) then Just (oppositeTeam team, replacePiece whites old new,blacks) else Nothing
-  | old `elem` blacks = if (canMake game old (getPosition new)) then Just (oppositeTeam team, whites,replacePiece blacks old new) else Nothing
-  | otherwise         = Nothing
-    where replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
-          replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
+move game@(team, whites, blacks) (Move old newPos)
+  | not $ canMake game old newPos = Nothing -- Can't make move
+  | getPieceTeam old /= team      = Nothing -- Attempted move is by the wrong team
+  | otherwise = 
+    case (getPiece game newPos) of 
+      Just target -> Just $ if team == White then (newTeam, newWhites, (delete target newBlacks)) else (newTeam, (delete target newWhites), newBlacks)
+      Nothing -> Just newGame -- Just a move, no pieces taken
+    where newPiece = (newPos, (getPieceType old, getPieceTeam old))
+          replacePiece pieces old new = new:(delete old pieces)
+          newGame@(newTeam, newWhites, newBlacks) = if old `elem` whites then (Black, replacePiece whites old newPiece, blacks) else (White, whites, replacePiece blacks old newPiece)
 
 inBounds :: Position -> Bool
 inBounds (x,y) = x>0 && x<9 && y>0 && y<9 --this will need to change if we change board size or indexing, ie starting at 0
@@ -107,7 +117,7 @@ canMake game piece@((x1, y1), (King, team)) (x2, y2) =
     inBounds (x2, y2) &&
     abs (x2 - x1) <= 1 && abs (y2 - y1) <= 1 &&  -- one-square in any direction
     canCapture game (x2, y2) piece &&
-    not (danger game ((x1, y1), (King, team)))  -- ensure king is not moving into check
+    not (danger game (x1, y1) team)  -- ensure king is not moving into check
 
 -- takes a game, position, and piece and checks whether the position is currently occupied 
     -- if the piece is the same color -> return false  
@@ -119,8 +129,8 @@ canCapture game (x, y) og =
         Just target -> getPieceTeam target /= getPieceTeam og
         Nothing     -> True
 
-danger :: Game -> Piece -> Bool
-danger game piece@(pos, (_, _)) = not $ null [op | op <- (opposite game piece), canMake game op pos]
+danger :: Game -> Position -> Team -> Bool
+danger game pos team = not $ null [op | op <- getTeamPieces game (oppositeTeam team), canMake game op pos]
 
 promote :: Piece -> Piece--unsure how to implement - will likely need user input for new type, unless we just make it automatically a queen?
 promote ((x, 8), (Pawn, White)) = ((x, 8), (Queen, White))
@@ -129,25 +139,25 @@ promote piece = piece
 
 possibleMoves :: Game -> Piece -> [Move]
 possibleMoves game piece@((x, y), (Pawn, team))   = 
-  [Move piece (move, (Pawn, team)) | move <- moves, canMake game piece move]
+  [Move piece move | move <- moves, canMake game piece move]
     where moves = [(x,y+1),(x,y+2),(x,y-1),(x,y-2)]
 possibleMoves game piece@((x, y), (Rook, team))   = 
-  [Move ((x, y), (Rook,team) ) ((x, ys), (Rook,team)) | ys <- [1..8], canMake game piece (x,ys)] ++
-  [Move ((x, y), (Rook,team) ) ((xs, y), (Rook,team)) | xs <- [1..8], canMake game piece (xs,y)]
+  [Move ((x, y), (Rook,team) ) (x, ys) | ys <- [1..8], canMake game piece (x,ys)] ++
+  [Move ((x, y), (Rook,team) ) (xs, y) | xs <- [1..8], canMake game piece (xs,y)]
 possibleMoves game piece@((x,y), (Knight, team)) = 
-  [Move piece (move, (Knight,team)) | move <- moves,canMake game piece move]
+  [Move piece move | move <- moves,canMake game piece move]
     where moves = [(x+3,y+1),(x+1,y+3),(x+3,y-1),(x-1,y+3),(x-3,y+1),(x+1,y-3),(x-1,y-3),(x-3,y-1)]
 possibleMoves game piece@((x, y), (Bishop, team))    = 
-  [Move piece (move, (Bishop, team)) | move <- moves,canMake game piece move]--ensures moves are in bounds
+  [Move piece move | move <- moves,canMake game piece move]--ensures moves are in bounds
     where moves = [(x+1,y+1),(x+2,y+2),(x+3,y+3),(x+4,y+4),(x+5,y+5),(x+6,y+6),(x+7,y+7),(x+8,y+8),(x-1,y-1),(x-2,y-2),(x-3,y-3),(x-4,y-4),(x-5,y-5),(x-6,y-6),(x-7,y-7),(x-8,y-8)]
 possibleMoves game ((x,y), (Queen, team))        = 
-  (possibleMoves game ((x,y), (Rook, team))) ++ (possibleMoves game ((x,y), (Bishop,team)))
+  (possibleMoves game (((x,y), (Rook, team)))) ++ (possibleMoves game ((x,y), (Bishop,team)))
 possibleMoves game piece@((x,y), (King, team))   = 
-  [Move piece (move, (King, team)) | move <- moves,canMake game piece move]
+  [Move piece move | move <- moves, canMake game piece move]
     where moves = [(x,y+1),(x+1,y),(x,y-1),(x-1,y),(x+1,y+1),(x+1,y-1),(x-1,y-1),(x-1,y+1)]
   
 safeMoves :: Game -> Piece -> [Move]
-safeMoves game piece = [move | move@(Move old new) <- (possibleMoves game piece), not $ danger game new]
+safeMoves game piece = [move | move@(Move old new) <- (possibleMoves game piece), not $ danger game new (getPieceTeam piece)]
 
 possibleGameMoves :: Game -> [Move]
 possibleGameMoves game@(team, whites, blacks) = 
@@ -155,7 +165,7 @@ possibleGameMoves game@(team, whites, blacks) =
   in concat [possibleMoves game p | p <- pieces]
 
 check :: Game -> Piece -> Bool
-check game piece@(_, (King, _)) = danger game piece
+check game piece@(pos, (King, team)) = danger game pos team
 check game _ = False
 
 --could probably combine check and checkmate with another data type, not sure if worthwhile
