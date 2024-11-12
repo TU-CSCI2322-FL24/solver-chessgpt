@@ -17,8 +17,6 @@ type Piece = (Position, (PieceType, Team))
 getPieceType :: Piece -> PieceType
 getPieceType (_,(b,_)) = b
 
-getPosition :: Piece -> Position
-getPosition (_,_,(x,y)) = (x,y)
 
 replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
 replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
@@ -201,9 +199,11 @@ pieceToString (_, (King, White))   = "♚"
 
 
 toString :: Game -> String
-toString game = unlines [rowString y game | y <- [8,7..1]]
-    where rowString y game = unwords [cellString (x, y) game | x <- [1..8]]
+toString game = unlines $ boardRows ++ [footer]
+    where rowString y game = show y ++ " " ++ unwords [cellString (x, y) game | x <- [1..8]]
           cellString pos game = maybe "." pieceToString (getPiece game pos)
+          footer = "  a b c d e f g h" 
+          boardRows = [rowString y game | y <- [8,7..1]] 
 
 -- Written with the help of ChatGPT
 initialGame :: Game
