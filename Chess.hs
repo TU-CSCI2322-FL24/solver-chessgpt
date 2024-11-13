@@ -10,16 +10,12 @@ data Team = White | Black deriving (Show,Eq)
 type Position = (Int, Int)
 -- type Game     = ([Piece],[Piece])
 type Game = (Team, [Piece], [Piece])
-data Winner   = Victor Team | Draw | None deriving (Show, Eq)
+data Winner   = Victor Team | Stalemate | None deriving (Show, Eq)
 -- type Piece    = (PieceType,Team,Position)
 type Piece = (Position, (PieceType, Team))
 
 getPieceType :: Piece -> PieceType
 getPieceType (_,(b,_)) = b
-
-
-replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
-replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
 
 getPieceTeam :: Piece -> Team
 getPieceTeam (_,(_,c)) = c
@@ -46,6 +42,9 @@ opposite (_, whites,blacks) (_, (_, Black)) = whites
 oppositeTeam :: Team -> Team
 oppositeTeam White = Black
 oppositeTeam Black = White
+
+replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
+replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
 
 move :: Game -> Move -> Maybe Game
 move game@(team, whites, blacks) (Move old newPos)
@@ -172,15 +171,15 @@ check :: Game -> Piece -> Bool
 check game piece@(pos, (King, team)) = danger game pos team
 check game _ = False
 
---could probably combine check and checkmate with another data type, not sure if worthwhile
 checkmate :: Game -> Piece -> Bool
 checkmate game piece = (check game piece) && (null $ possibleMoves game piece)
 
---the winner function is being difficult, pls help
 winner :: Game -> Winner
-winner game@(_, whites, blacks)--should somehow account for stalemates - likely best to consider which combinations of pieces cannot force checkmate and make those cases
+winner game@(_, whites, blacks)--should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
   | checkmate game (head [piece | piece <- whites,(getPieceType piece)==King]) = Victor Black
   | checkmate game (head [piece | piece <- blacks,(getPieceType piece)==King]) = Victor White
+  | null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King]))||
+    null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King])) = Stalemate
   | otherwise = None
 
 pieceToString :: Piece -> String
@@ -196,7 +195,6 @@ pieceToString (_, (Queen, Black))  = "♕"
 pieceToString (_, (Queen, White))  = "♛"
 pieceToString (_, (King, Black))   = "♔"
 pieceToString (_, (King, White))   = "♚"
-
 
 toString :: Game -> String
 toString game = unlines $ boardRows ++ [footer]
@@ -223,6 +221,14 @@ initialGame = (White, whitePieces, blackPieces)
         ((6, 8), (Bishop, Black)), ((7, 8), (Knight, Black)), ((8, 8), (Rook, Black))
       ] ++ blackPawns
 
-
 printGame :: Game -> IO ()--written with the help of ChatGPT
 printGame game = putStrLn $ toString game
+
+whoWillWin :: Game -> Winner--maybe use point system?https://www.chess.com/terms/chess-piece-value
+whoWillWin game = undefined
+
+bestMove :: Game -> Move--will need helper functions, as well as a way to determine which team it's making a move for. whoWillWin may be helpful.
+bestMove game = undefined
+
+readGame :: String -> Game--just turn printGame inside out
+readGame str = undefined
