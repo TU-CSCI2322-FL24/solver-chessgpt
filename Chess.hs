@@ -151,13 +151,14 @@ possibleMoves game piece@((x,y),(Rook,team))   =
 possibleMoves game piece@((x,y),(Knight, team)) = 
   [Move piece move | move <- moves,canMake game piece move]
     where moves = [(x+3,y+1),(x+1,y+3),(x+3,y-1),(x-1,y+3),(x-3,y+1),(x+1,y-3),(x-1,y-3),(x-3,y-1)]
-possibleMoves game piece@(Bishop,_,(x,y))    = 
-  [Move piece (Bishop,team,move) | move <- moves,canMake game piece move]
+possibleMoves game piece@((x,y), (Bishop,team))    = 
+  [Move piece move | move <- moves,canMake game piece move]
     where moves = [ (x + i, y + i) | i <- [1..8], inBounds (x + i, y + i) ] ++ [ (x - i, y - i) | i <- [1..8], inBounds (x - i, y - i) ] ++ [ (x - i, y + i) | i <- [1..8], inBounds (x - i, y + i) ] ++ [ (x + i, y - i) | i <- [1..8], inBounds (x + i, y - i) ] --efficiency helped with chatgpt
 possibleMoves game ((x,y), (Queen,team))        = 
   (possibleMoves game (((x,y), (Rook,team)))) ++ (possibleMoves game ((x,y), (Bishop,team)))
 possibleMoves game piece@((x,y), (King,team))   = 
   [Move piece move | move <- moves, canMake game piece move]
+    where moves = [(x+1,y+1),(x-1,y-1),(x+1,y-1),(x-1,y+1),(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
   
 safeMoves :: Game -> Piece -> [Move]
 safeMoves game piece = [move | move@(Move old new) <- (possibleMoves game piece), not $ danger game new (getPieceTeam piece)]
