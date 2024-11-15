@@ -53,11 +53,11 @@ move game@(team, whites, blacks,count) (Move old newPos)
   | getPieceTeam old /= team      = Nothing -- Attempted move is by the wrong team
   | otherwise = 
     case (getPiece game newPos) of 
-      Just target -> Just $ if team == White then (newTeam, newWhites, (delete target newBlacks),count+1) else (newTeam, (delete target newWhites), newBlacks,count+1)
+      Just target -> Just $ if team == White then (newTeam, newWhites, (delete target newBlacks),count-1) else (newTeam, (delete target newWhites), newBlacks,count-1)
       Nothing -> Just newGame -- Just a move, no pieces taken
     where newPiece = (newPos, (getPieceType old, getPieceTeam old))
           replacePiece pieces old new = new:(delete old pieces)
-          newGame@(newTeam, newWhites, newBlacks,newCount) = if old `elem` whites then (Black, replacePiece whites old newPiece, blacks,count+1) else (White, whites, replacePiece blacks old newPiece,count+1)
+          newGame@(newTeam, newWhites, newBlacks,newCount) = if old `elem` whites then (Black, replacePiece whites old newPiece, blacks,count-1) else (White, whites, replacePiece blacks old newPiece,count-1)
 
 inBounds :: Position -> Bool
 inBounds (x,y) = x>0 && x<9 && y>0 && y<9 --this will need to change if we change board size or indexing, ie starting at 0
@@ -181,7 +181,8 @@ checkmate game team = (check game king) && (null $ possibleMoves game king)
   where king = getKing game team
 
 winner :: Game -> Maybe Winner
-winner game@(_, whites, blacks,_)--should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
+winner game@(_, whites, blacks,count)--should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
+  | count<1=Just Stalemate
   | checkmate game White = Just (Victor Black)
   | checkmate game Black = Just (Victor White)
   | null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King]))||
@@ -211,7 +212,7 @@ toString game = unlines $ boardRows ++ [footer]
 
 -- Written with the help of ChatGPT
 initialGame :: Game
-initialGame = (White, whitePieces, blackPieces,0)
+initialGame = (White, whitePieces, blackPieces,100)--may need to change turn count
   where
     whitePawns   = [((x, 2), (Pawn, White)) | x <- [1..8]]
     whitePieces = [
