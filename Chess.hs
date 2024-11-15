@@ -1,7 +1,7 @@
 module Chess where
 import Data.Ord
 import Data.List
-import Data.List.Split
+--import Data.List.Split why can't it find this
 import Data.Maybe 
 
 data Move = Move Piece Position deriving (Show, Eq)
