@@ -59,6 +59,21 @@ move game@(team, whites, blacks) (Move old newPos)
           replacePiece pieces old new = new:(delete old pieces)
           newGame@(newTeam, newWhites, newBlacks) = if old `elem` whites then (Black, replacePiece whites old newPiece, blacks) else (White, whites, replacePiece blacks old newPiece)
 
+-- Format for a user-entered move is position of piece to move followed by the desired new position, e.g. 
+readMove :: Game -> String -> Maybe Move
+readMove game str = 
+    do 
+      let maybeWords = case (words str) of
+          (oldStr:newStr:_) -> Just (oldStr, newStr)
+          _ -> Nothing
+      (oldStr, newStr) <- maybeWords
+      let maybePositions = case (oldStr, newStr) of
+          (oldX:oldY_, newX:newY:_) -> Just ((oldX, oldY), (newX, newY))
+          _ -> Nothing
+      (oldPos, newPos) <- maybePositions
+      oldPiece <- getPiece game oldPos
+      return (Move oldPiece newPos)
+
 inBounds :: Position -> Bool
 inBounds (x,y) = x>0 && x<9 && y>0 && y<9 --this will need to change if we change board size or indexing, ie starting at 0
 
