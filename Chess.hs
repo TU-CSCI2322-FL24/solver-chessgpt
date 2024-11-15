@@ -87,13 +87,9 @@ possibleMoves game piece@(Rook,team,(x,y))   =
 possibleMoves game piece@(Knight,team,(x,y)) = 
   [Move piece (Knight,team,move) | move <- moves,canMake game piece move]
     where moves = [(x+3,y+1),(x+1,y+3),(x+3,y-1),(x-1,y+3),(x-3,y+1),(x+1,y-3),(x-1,y-3),(x-3,y-1)]--Jumpin Jesus Huckleberry Christ on a crutch, I have never hated a line of code this much
-possibleMoves game piece@(Bishop,_,(x,y))    = 
+possibleMoves game piece@(Bishop,team,(x,y))    = 
   [Move piece (Bishop,team,move) | move <- moves,canMake game piece move]
-    where moves =
-    [ (x + i, y + i) | i <- [1..8], inBounds (x + i, y + i) ] ++
-    [ (x - i, y - i) | i <- [1..8], inBounds (x - i, y - i) ] ++
-    [ (x - i, y + i) | i <- [1..8], inBounds (x - i, y + i) ] ++
-    [ (x + i, y - i) | i <- [1..8], inBounds (x + i, y - i) ] --efficiency helped with chatgpt 
+    where moves = [ (x + i, y + i) | i <- [1..8], inBounds (x + i, y + i) ] ++ [ (x - i, y - i) | i <- [1..8], inBounds (x - i, y - i) ] ++ [ (x - i, y + i) | i <- [1..8], inBounds (x - i, y + i) ] ++ [ (x + i, y - i) | i <- [1..8], inBounds (x + i, y - i) ] --efficiency helped with chatgpt 
 possibleMoves game (Queen,team,(x,y))        = 
   (possibleMoves game (Rook,team,(x,y)))++(possibleMoves game (Bishop,team,(x,y)))
 possibleMoves game piece@(King,team,(x,y))   = 
