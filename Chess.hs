@@ -10,8 +10,8 @@ data Team = White | Black deriving (Show,Eq)
 
 type Position = (Int, Int)
 -- type Game     = ([Piece],[Piece])
-type Game = (Team, [Piece], [Piece])
-data Winner   = Victor Team | Stalemate | None deriving (Show, Eq)
+type Game = (Team, [Piece], [Piece],Int)
+data Winner   = Victor Team | Stalemate deriving (Show, Eq)
 -- type Piece    = (PieceType,Team,Position)
 type Piece = (Position, (PieceType, Team))
 
@@ -25,20 +25,20 @@ getPosition :: Piece -> Position
 getPosition ((x,y), (_,_)) = (x,y)
 
 getTeamPieces :: Game -> Team -> [Piece]
-getTeamPieces game@(_, whites, blacks) team
+getTeamPieces game@(_, whites, blacks,_) team
   | team == White = whites
   | otherwise = blacks
 
 -- takes a position and checks whether there is a piece there, if yes then returns Just Piece, if no then returns Nothing
 getPiece :: Game -> Position -> Maybe Piece 
-getPiece (_, white, black) pos =
+getPiece (_, white, black,_) pos =
     case [piece | piece <- white ++ black, getPosition piece == pos] of
         (p:_)   -> Just p
         []      -> Nothing 
 
 opposite :: Game -> Piece -> [Piece]
-opposite (_, whites,blacks) (_, (_, White)) = blacks
-opposite (_, whites,blacks) (_, (_, Black)) = whites
+opposite (_, whites,blacks,_) (_, (_, White)) = blacks
+opposite (_, whites,blacks,_) (_, (_, Black)) = whites
 
 oppositeTeam :: Team -> Team
 oppositeTeam White = Black
@@ -48,16 +48,16 @@ replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
 replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
 
 move :: Game -> Move -> Maybe Game
-move game@(team, whites, blacks) (Move old newPos)
+move game@(team, whites, blacks,count) (Move old newPos)
   | not $ canMake game old newPos = Nothing -- Can't make move
   | getPieceTeam old /= team      = Nothing -- Attempted move is by the wrong team
   | otherwise = 
     case (getPiece game newPos) of 
-      Just target -> Just $ if team == White then (newTeam, newWhites, (delete target newBlacks)) else (newTeam, (delete target newWhites), newBlacks)
+      Just target -> Just $ if team == White then (newTeam, newWhites, (delete target newBlacks),count+1) else (newTeam, (delete target newWhites), newBlacks,count+1)
       Nothing -> Just newGame -- Just a move, no pieces taken
     where newPiece = (newPos, (getPieceType old, getPieceTeam old))
           replacePiece pieces old new = new:(delete old pieces)
-          newGame@(newTeam, newWhites, newBlacks) = if old `elem` whites then (Black, replacePiece whites old newPiece, blacks) else (White, whites, replacePiece blacks old newPiece)
+          newGame@(newTeam, newWhites, newBlacks,newCount) = if old `elem` whites then (Black, replacePiece whites old newPiece, blacks,count+1) else (White, whites, replacePiece blacks old newPiece,count+1)
 
 inBounds :: Position -> Bool
 inBounds (x,y) = x>0 && x<9 && y>0 && y<9 --this will need to change if we change board size or indexing, ie starting at 0
@@ -164,24 +164,29 @@ safeMoves :: Game -> Piece -> [Move]
 safeMoves game piece = [move | move@(Move old new) <- (possibleMoves game piece), not $ danger game new (getPieceTeam piece)]
 
 possibleGameMoves :: Game -> [Move]
-possibleGameMoves game@(team, whites, blacks) = 
+possibleGameMoves game@(team, whites, blacks,_) = 
   let pieces = if team == White then whites else blacks
   in concat [possibleMoves game p | p <- pieces]
+
+getKing :: Game -> Team -> Piece
+getKing game@(_,whites,blacks,_) White = (head [piece | piece <- whites,(getPieceType piece)==King])
+getKing game@(_,whites,blacks,_) Black = (head [piece | piece <- blacks,(getPieceType piece)==King])
 
 check :: Game -> Piece -> Bool
 check game piece@(pos, (King, team)) = danger game pos team
 check game _ = False
 
-checkmate :: Game -> Piece -> Bool
-checkmate game piece = (check game piece) && (null $ possibleMoves game piece)
+checkmate :: Game -> Team -> Bool
+checkmate game team = (check game king) && (null $ possibleMoves game king)
+  where king = getKing game team
 
-winner :: Game -> Winner
-winner game@(_, whites, blacks)--should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
-  | checkmate game (head [piece | piece <- whites,(getPieceType piece)==King]) = Victor Black
-  | checkmate game (head [piece | piece <- blacks,(getPieceType piece)==King]) = Victor White
+winner :: Game -> Maybe Winner
+winner game@(_, whites, blacks,_)--should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
+  | checkmate game White = Just (Victor Black)
+  | checkmate game Black = Just (Victor White)
   | null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King]))||
-    null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King])) = Stalemate
-  | otherwise = None
+    null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King])) = Just Stalemate
+  | otherwise = Nothing
 
 pieceToString :: Piece -> String
 pieceToString (_, (Pawn, Black))   = "♙"
@@ -206,7 +211,7 @@ toString game = unlines $ boardRows ++ [footer]
 
 -- Written with the help of ChatGPT
 initialGame :: Game
-initialGame = (White, whitePieces, blackPieces)
+initialGame = (White, whitePieces, blackPieces,0)
   where
     whitePawns   = [((x, 2), (Pawn, White)) | x <- [1..8]]
     whitePieces = [
