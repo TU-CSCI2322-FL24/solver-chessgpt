@@ -137,8 +137,8 @@ canCapture game (x, y) og =
 danger :: Game -> Position -> Team -> Bool
 danger game pos team = not $ null [op | op <- getTeamPieces game (oppositeTeam team), canMake game op pos]
 
-promote :: Piece -> Piece--unsure how to implement - will likely need user input for new type, unless we just make it automatically a queen?
-promote ((x, 8), (Pawn, White)) = ((x, 8), (Queen, White))
+promote :: Piece -> Piece
+promote ((x, 8), (Pawn, White)) = ((x, 8), (Queen, White))--we will need to change these cases for proper promotion eventually
 promote ((x, 1), (Pawn, Black)) = ((x, 1), (Queen, Black))
 promote piece = piece
 
