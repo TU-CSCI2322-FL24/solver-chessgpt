@@ -4,11 +4,6 @@ import Chess
 whoWillWin :: Game -> Winner--maybe use point system?https://www.chess.com/terms/chess-piece-value
 whoWillWin game = undefined
 
-
-
-bestMove :: Game -> Move--will need helper functions, as well as a way to determine which team it's making a move for. whoWillWin may be helpful.
-bestMove game = undefined
-
 material :: Game -> Integer
 material (_,whites,blacks) = wMaterial - bMaterial
     where wMaterial = sum [val | (_, (type, _)) <- whites
@@ -33,11 +28,24 @@ pawnStructure :: Game -> Integer
 pawnStructure game = 
     where wPawns = [(pos, (type, team)) | (pos, (type, team)) <- whites, type == Pawn]
           bPawns = [(pos, (type, team)) | (pos, (type, team)) <- whites, type == Pawn]
+          wStructure = length [x | x <- wPawns, ]--use adjacentTeamPieces
+          bStructure = 
 
-kingSafety :: Game -> Integer
+adjacentTeamPieces :: Game -> Piece -> [Pieces]
+adjacentTeamPieces game piece = if getPieceTeam piece == white then length [pos | pos <- adjacentPositions, (getPiece game pos) /= null]--need to only check for one team somehow
+                                else 
+                where (pieceX,pieceY) = getPosition piece
+                      adjacentPositions = [(pieceX-1, pieceY+1),(pieceX, pieceY+1),(pieceX+1, pieceY+1),(pieceX-1, pieceY)
+                                       ,(pieceX+1, pieceY),(pieceX-1, pieceY-1),(pieceX, pieceY-1),(pieceX+1, pieceY-1)]
+
+kingSafety :: Game -> Integer--just check how many friendly pieces are around the king for now using adjecentTeamPieces
 kingSafety game = undefined
 
 
+
+
+bestMove :: Game -> Move--will need helper functions, as well as a way to determine which team it's making a move for. whoWillWin may be helpful.
+bestMove game = undefined
 
 readGame :: String -> Game--just turn printGame inside out
 readGame str = undefined
