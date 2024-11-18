@@ -8,7 +8,6 @@ whoWillWin game =
         Just winner -> winner
         Nothing -> undefined
 
-
 bestMove :: Game -> Move--will need helper functions, as well as a way to determine which team it's making a move for. whoWillWin may be helpful.
 bestMove game = undefined
 
