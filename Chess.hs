@@ -30,12 +30,8 @@ getTeamPieces game@(_, whites, blacks,_) team
   | otherwise = blacks
 
 -- takes a position and checks whether there is a piece there, if yes then returns Just Piece, if no then returns Nothing
-getPiece :: Game -> Position -> Maybe Piece 
-getPiece (_, white, black,_) pos =
-    if (not $ inBounds pos) then Nothing else--this case will make out of bounds searches O(1), if they ever happen
-    case [piece | piece <- white ++ black, getPosition piece == pos] of
-        (p:_)   -> Just p
-        []      -> Nothing 
+getPiece :: Game -> Position -> Maybe (PieceType, Team)
+getPiece (_, white, black,_) pos = lookup pos (white ++ black)
 
 opposite :: Game -> Piece -> [Piece]
 opposite (_, whites,blacks,_) (_, (_, White)) = blacks
@@ -54,11 +50,14 @@ move game@(team, whites, blacks,count) (Move old newPos)
   | getPieceTeam old /= team      = Nothing -- Attempted move is by the wrong team
   | otherwise = 
     case (getPiece game newPos) of 
-      Just target -> Just $ if team == White then (newTeam, newWhites, (delete target newBlacks),count-1) else (newTeam, (delete target newWhites), newBlacks,count-1)
+      Just target -> Just $ if team == White then (newTeam, newWhites, (delete (newPos, target) newBlacks),count-1) else (newTeam, (delete (newPos, target) newWhites), newBlacks,count-1)
       Nothing -> Just newGame -- Just a move, no pieces taken
     where newPiece = (newPos, (getPieceType old, getPieceTeam old))
           replacePiece pieces old new = new:(delete old pieces)
-          newGame@(newTeam, newWhites, newBlacks,newCount) = if old `elem` whites then (Black, replacePiece whites old newPiece, blacks,count-1) else (White, whites, replacePiece blacks old newPiece,count-1)
+          newGame@(newTeam, newWhites, newBlacks,newCount) = 
+              if old `elem` whites 
+                then (Black, replacePiece whites old newPiece, blacks,count-1) 
+                else (White, whites, replacePiece blacks old newPiece,count-1)
 
 inBounds :: Position -> Bool
 inBounds (x,y) = x>0 && x<9 && y>0 && y<9 --this will need to change if we change board size or indexing, ie starting at 0
@@ -76,7 +75,7 @@ rowClear game (x1, y1) (x2, y2)
     | x1 == x2 = all (isNothing . getPiece game) [(x1, y) | y <- [min y1 y2 + 1 .. max y1 y2 - 1]]
     | y1 == y2 = all (isNothing . getPiece game) [(x, y1) | x <- [min x1 x2 + 1 .. max x1 x2 - 1]]
     | otherwise = False
-
+isEmpty game loc = isNothing $ getPiece game loc
 -- returns true if the move can be made, and returns false if it cannot be made
 -- checks whether a move is in the bounds of the board
 -- checks that a move is valid for the given piece
@@ -90,15 +89,16 @@ canMake game ((x1, y1), (Pawn, White)) (x2, y2) =
     (x2 == x1 && y1 == 2 && y2 == 4 && isNothing (getPiece game (x2, 3)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
     (abs (x2 - x1) == 1 && y2 == y1 + 1 &&  
     case getPiece game (x2, y2) of -- diagonal capture
-        Just target -> getPieceTeam target == Black
+        Just target -> snd target == Black
         Nothing     -> False)
+
 canMake game ((x1, y1), (Pawn, Black)) (x2, y2) =
     inBounds (x2, y2) &&
     (x2 == x1 && y2 == y1 - 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
     (x2 == x1 && y1 == 7 && y2 == 5 && isNothing (getPiece game (x2, 6)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
     (abs (x2 - x1) == 1 && y2 == y1 - 1 &&
     case getPiece game (x2, y2) of -- diagonal capture
-        Just target -> getPieceTeam target == White
+        Just target -> snd target == White
         Nothing     -> False)
 canMake game piece@((x1, y1), (Rook, _)) (x2, y2) =
     inBounds (x2, y2) &&
@@ -131,7 +131,7 @@ canMake game piece@((x1, y1), (King, team)) (x2, y2) =
 canCapture :: Game -> Position -> Piece -> Bool
 canCapture game (x, y) og = 
     case getPiece game (x, y) of 
-        Just target -> getPieceTeam target /= getPieceTeam og
+        Just target -> snd target /= getPieceTeam og
         Nothing     -> True
 
 danger :: Game -> Position -> Team -> Bool
@@ -186,19 +186,19 @@ winner game@(_, whites, blacks,count)--should somehow account for stalemates - k
   -- null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King])) = Just Stalemate
   | otherwise = Nothing
 
-pieceToString :: Piece -> String
-pieceToString (_, (Pawn, Black))   = "♙"
-pieceToString (_, (Pawn, White))   = "♟"
-pieceToString (_, (Rook, Black))   = "♖"
-pieceToString (_, (Rook, White))   = "♜"
-pieceToString (_, (Knight, Black)) = "♘"
-pieceToString (_, (Knight, White)) = "♞"
-pieceToString (_, (Bishop, Black)) = "♗"
-pieceToString (_, (Bishop, White)) = "♝"
-pieceToString (_, (Queen, Black))  = "♕"
-pieceToString (_, (Queen, White))  = "♛"
-pieceToString (_, (King, Black))   = "♔"
-pieceToString (_, (King, White))   = "♚"
+pieceToString :: (PieceType, Team) -> String
+pieceToString ((Pawn, Black))   = "♙"
+pieceToString ((Pawn, White))   = "♟"
+pieceToString ((Rook, Black))   = "♖"
+pieceToString ((Rook, White))   = "♜"
+pieceToString ((Knight, Black)) = "♘"
+pieceToString ((Knight, White)) = "♞"
+pieceToString ((Bishop, Black)) = "♗"
+pieceToString ((Bishop, White)) = "♝"
+pieceToString ((Queen, Black))  = "♕"
+pieceToString ((Queen, White))  = "♛"
+pieceToString ((King, Black))   = "♔"
+pieceToString ((King, White))   = "♚"
 
 toString :: Game -> String
 toString game = unlines $ boardRows ++ [footer]
