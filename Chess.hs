@@ -1,7 +1,7 @@
 module Chess where
 import Data.Ord
 import Data.List
---import Data.List.Split why can't it find this
+import Data.List.Split
 import Data.Maybe 
 
 data Move = Move Piece Position deriving (Show, Eq)
@@ -32,6 +32,7 @@ getTeamPieces game@(_, whites, blacks,_) team
 -- takes a position and checks whether there is a piece there, if yes then returns Just Piece, if no then returns Nothing
 getPiece :: Game -> Position -> Maybe Piece 
 getPiece (_, white, black,_) pos =
+    if (not $ inBounds pos) then Nothing else--this case will make out of bounds searches O(1), if they ever happen
     case [piece | piece <- white ++ black, getPosition piece == pos] of
         (p:_)   -> Just p
         []      -> Nothing 
@@ -160,33 +161,29 @@ possibleMoves game piece@((x,y), (King, team))   =
   [Move piece move | move <- moves, canMake game piece move]
     where moves = [(x,y+1),(x+1,y),(x,y-1),(x-1,y),(x+1,y+1),(x+1,y-1),(x-1,y-1),(x-1,y+1)]
   
-safeMoves :: Game -> Piece -> [Move]
-safeMoves game piece = [move | move@(Move old new) <- (possibleMoves game piece), not $ danger game new (getPieceTeam piece)]
+--safeMoves :: Game -> Piece -> [Move]
+--safeMoves game piece = [move | move@(Move old new) <- (possibleMoves game piece), not $ danger game new (getPieceTeam piece)]
 
 possibleGameMoves :: Game -> [Move]
 possibleGameMoves game@(team, whites, blacks,_) = 
   let pieces = if team == White then whites else blacks
   in concat [possibleMoves game p | p <- pieces]
 
-getKing :: Game -> Team -> Piece
-getKing game@(_,whites,blacks,_) White = (head [piece | piece <- whites,(getPieceType piece)==King])
-getKing game@(_,whites,blacks,_) Black = (head [piece | piece <- blacks,(getPieceType piece)==King])
-
-check :: Game -> Piece -> Bool
+{-check :: Game -> Piece -> Bool
 check game piece@(pos, (King, team)) = danger game pos team
-check game _ = False
+check game _ = False-}
 
-checkmate :: Game -> Team -> Bool
+{-checkmate :: Game -> Team -> Bool
 checkmate game team = (check game king) && (null $ possibleMoves game king)
-  where king = getKing game team
+  where king = getKing game team-}
 
 winner :: Game -> Maybe Winner
 winner game@(_, whites, blacks,count)--should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
   | count<1=Just Stalemate
-  | checkmate game White = Just (Victor Black)
-  | checkmate game Black = Just (Victor White)
-  | null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King]))||
-    null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King])) = Just Stalemate
+  | (null [piece | piece <- whites,(getPieceType piece)==King]) = Just (Victor Black)
+  | (null [piece | piece <- blacks,(getPieceType piece)==King]) = Just (Victor White)
+  --null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King]))||
+  -- null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King])) = Just Stalemate
   | otherwise = Nothing
 
 pieceToString :: Piece -> String
@@ -209,24 +206,6 @@ toString game = unlines $ boardRows ++ [footer]
           cellString pos game = maybe "." pieceToString (getPiece game pos)
           footer = "  a b c d e f g h" 
           boardRows = [rowString y game | y <- [8,7..1]] 
-
--- Written with the help of ChatGPT
-initialGame :: Game
-initialGame = (White, whitePieces, blackPieces,100)--may need to change turn count
-  where
-    whitePawns   = [((x, 2), (Pawn, White)) | x <- [1..8]]
-    whitePieces = [
-        ((1, 1), (Rook, White)), ((2, 1), (Knight, White)), ((3, 1), (Bishop, White)),
-        ((4, 1), (Queen, White)), ((5, 1), (King, White)),
-        ((6, 1), (Bishop, White)), ((7, 1), (Knight, White)), ((8, 1), (Rook, White))
-      ] ++ whitePawns
-
-    blackPawns   = [((x, 7), (Pawn, Black)) | x <- [1..8]]
-    blackPieces = [
-        ((1, 8), (Rook, Black)), ((2, 8), (Knight, Black)), ((3, 8), (Bishop, Black)),
-        ((4, 8), (Queen, Black)), ((5, 8), (King, Black)),
-        ((6, 8), (Bishop, Black)), ((7, 8), (Knight, Black)), ((8, 8), (Rook, Black))
-      ] ++ blackPawns
 
 printGame :: Game -> IO ()--written with the help of ChatGPT
 printGame game = putStrLn $ toString game
