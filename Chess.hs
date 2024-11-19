@@ -83,45 +83,45 @@ isEmpty game loc = isNothing $ getPiece game loc
 -- checks that the destination position is not currently occupied by a piece of the same color 
     -- if the destination is occupied by an opposite colored piece, returns true
 canMake :: Game -> Piece -> Position -> Bool
-canMake game ((x1, y1), (Pawn, White)) (x2, y2) =
-    inBounds (x2, y2) &&
+canMake game@(turn,_,_,_) ((x1, y1), (Pawn, White)) (x2, y2) =
+    turn==White && inBounds (x2, y2) &&
     (x2 == x1 && y2 == y1 + 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
     (x2 == x1 && y1 == 2 && y2 == 4 && isNothing (getPiece game (x2, 3)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
     (abs (x2 - x1) == 1 && y2 == y1 + 1 &&  
     case getPiece game (x2, y2) of -- diagonal capture
         Just target -> getPieceTeam target == Black
         Nothing     -> False)
-canMake game ((x1, y1), (Pawn, Black)) (x2, y2) =
-    inBounds (x2, y2) &&
+canMake game@(turn,_,_,_) ((x1, y1), (Pawn, Black)) (x2, y2) =
+    turn == Black && inBounds (x2, y2) &&
     (x2 == x1 && y2 == y1 - 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
     (x2 == x1 && y1 == 7 && y2 == 5 && isNothing (getPiece game (x2, 6)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
     (abs (x2 - x1) == 1 && y2 == y1 - 1 &&
     case getPiece game (x2, y2) of -- diagonal capture
         Just target -> getPieceTeam target == White
         Nothing     -> False)
-canMake game piece@((x1, y1), (Rook, _)) (x2, y2) =
-    inBounds (x2, y2) &&
+canMake game@(turn,_,_,_) piece@((x1, y1), (Rook, team)) (x2, y2) =
+    turn == team && inBounds (x2, y2) &&
     ((x2 == x1 || y2 == y1) && pathClear game (x1, y1) (x2, y2)) &&  -- clear row/column
     canCapture game (x2, y2) piece
-canMake game piece@((x1, y1), (Knight, _)) (x2, y2) =
-    inBounds (x2, y2) &&
+canMake game@(turn,_,_,_) piece@((x1, y1), (Knight, team)) (x2, y2) =
+    turn == team && inBounds (x2, y2) &&
     ((abs (x2 - x1), abs (y2 - y1)) `elem` [(2, 1), (1, 2)]) &&
     canCapture game (x2, y2) piece
-canMake game piece@((x1, y1), (Bishop, _)) (x2, y2) =
-    inBounds (x2, y2) &&
+canMake game@(turn,_,_,_) piece@((x1, y1), (Bishop, team)) (x2, y2) =
+    turn == team && inBounds (x2, y2) &&
     abs (x2 - x1) == abs (y2 - y1) &&  -- diagonal check
     pathClear game (x1, y1) (x2, y2) &&
     canCapture game (x2, y2) piece
-canMake game piece@((x1, y1), (Queen, _)) (x2, y2) =
-    inBounds (x2, y2) &&
+canMake game@(turn,_,_,_) piece@((x1, y1), (Queen, team)) (x2, y2) =
+    turn == team && inBounds (x2, y2) &&
     ((x2 == x1 || y2 == y1) && pathClear game (x1, y1) (x2, y2) ||  -- rook-like move
      abs (x2 - x1) == abs (y2 - y1) && pathClear game (x1, y1) (x2, y2)) &&  -- bishop-like move
     canCapture game (x2, y2) piece
-canMake game piece@((x1, y1), (King, team)) (x2, y2) =
-    inBounds (x2, y2) &&
+canMake game@(turn,_,_,_) piece@((x1, y1), (King, team)) (x2, y2) =
+    turn == team && inBounds (x2, y2) &&
     abs (x2 - x1) <= 1 && abs (y2 - y1) <= 1 &&  -- one-square in any direction
     canCapture game (x2, y2) piece &&
-    null [op | op <- getTeamPieces game (oppositeTeam team), canMake game op (x2,y2)]
+    null [op | op <- getTeamPieces game (oppositeTeam team), canMake game op (x2,y2)]--prevents king from moving into check
 
 -- takes a game, position, and piece and checks whether the position is currently occupied 
     -- if the piece is the same color -> return false  
@@ -163,14 +163,18 @@ possibleGameMoves game@(team, whites, blacks,_) =
   in concat [possibleMoves game p | p <- pieces]
 
 winner :: Game -> Maybe Winner
-winner game@(_, whites, blacks,count)--should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
+winner game@(turn, whites, blacks,count)--should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
   | count<1=Just Stalemate
-  | (null [piece | piece <- whites,(getPieceType piece)==King]) = Just (Victor Black)
-  | (null [piece | piece <- blacks,(getPieceType piece)==King]) = Just (Victor White)
-  --null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King]))||
-  -- null (safeMoves game (head [piece | piece <- whites,(getPieceType piece)==King])) = Just Stalemate
+  | null whiteKing = Just (Victor Black)
+  | null blackKing = Just (Victor White)
+-- | (null (safeMoves game w)&&(turn==White))||
+--   (null (safeMoves game b)&&(turn==Black)) = Just Stalemate
+--     where (w:_) = whiteKing
+--           (b:_) = blackKing
   | otherwise = Nothing
-
+    where whiteKing = [piece | piece <- whites,(getPieceType piece)==King]
+          blackKing = [piece | piece <- blacks,(getPieceType piece)==King]
+    
 pieceToString :: Piece -> String
 pieceToString (_, (Pawn, Black))   = "♙"
 pieceToString (_, (Pawn, White))   = "♟"

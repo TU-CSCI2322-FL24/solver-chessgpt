@@ -15,8 +15,8 @@ import Control.Monad.Trans.RWS
 testGetPiece :: Grader String
 testGetPiece = assess "getPiece" 0 $ do--The number denotes the point value, which isn't particularly meaningful for our purposes
 --use checks for actual tests; `shouldBe` is an equality assertion. Other assertions can be found in past Testing files if you want them.
-        check "that getPiece returns a piece where one exists" $ getPiece checkmate1 (1,1) `shouldBe` Just ((1,1),(King,White))
-        check "that getPiece does not return a piece where one does not exist" $ getPiece checkmate1 (8,8) `shouldBe` Nothing
+        check "that getPiece returns a piece where one exists" $ getPiece win1 (1,1) `shouldBe` Just ((1,1),(King,White))
+        check "that getPiece does not return a piece where one does not exist" $ getPiece win1 (8,8) `shouldBe` Nothing
 
 testReplacePiece :: Grader String
 testReplacePiece = assess "replacePiece" 0 $ do 
@@ -33,6 +33,7 @@ testMove = assess "move" 0 $ do
         check "that move can move a pawn one space again" $ getPiece (getGame $ move game2 (Move ((1, 3), (Pawn, White)) (1,4))) (1,4) `shouldBe` Just ((1,4),(Pawn,White))
         check "that move can't move a pawn two spaces again" $ move game1 (Move ((1, 3), (Pawn, White)) (1,5)) `shouldBe` Nothing
         check "that a pawn can't move through another piece" $ move (White,[((1, 3), (Pawn, White))],[((1, 4), (Pawn, Black))],50) (Move ((1, 3), (Pawn, White)) (1,4)) `shouldBe` Nothing
+        check "that a bishop can move diagonally" $ getPiece (getGame $ move bishopGame (Move ((1,8),(Bishop,White)) (7,2))) (7,2) `shouldBe` Just ((7,2),(Bishop,White))
         check "that move can't move a king initially" $ move initialGame (Move ((5, 1), (King, White)) (5,2)) `shouldBe` Nothing
         check "that Black can't move on the first turn" $ move initialGame (Move ((1, 7), (Pawn, Black)) (1,6)) `shouldBe` Nothing
         check "that a piece can't move out of bounds" $ move initialGame (Move ((5, 1), (King, White)) (5,0)) `shouldBe` Nothing
@@ -41,11 +42,11 @@ testCanMake :: Grader String
 testCanMake = assess "canMake" 0 $ do
         check "that a pawn can move one space" $ canMake initialGame ((1, 2), (Pawn, White)) (1,3) `shouldBe` True
         check "that a pawn can move two spaces initially" $ canMake initialGame ((1, 2), (Pawn, White)) (1,4) `shouldBe` True
-        check "that a pawn can move one space again" $ canMake game1 ((1, 3), (Pawn, White)) (1,4) `shouldBe` True
+        check "that a pawn can move one space again" $ canMake game2 ((1, 3), (Pawn, White)) (1,4) `shouldBe` True
         check "that a pawn can't move two spaces normally" $ canMake game1 ((1, 3), (Pawn, White)) (1,5) `shouldBe` False
         check "that a pawn can't move through another piece" $ canMake (White,[((1, 3), (Pawn, White))],[((1, 4), (Pawn, Black))],50) ((1, 3), (Pawn, White)) (1,4) `shouldBe` False
         check "that a king can't move initially" $ canMake initialGame ((5, 1), (King, White)) (5,2) `shouldBe` False
-        check "that Black can't move on the first turn" $ canMake initialGame ((1, 7), (Pawn, Black)) (1,6) `shouldBe` False--do we even want to fix this?
+        check "that Black can't move on the first turn" $ canMake initialGame ((1, 7), (Pawn, Black)) (1,6) `shouldBe` False
         check "that a piece can't move out of bounds" $ canMake initialGame ((5, 1), (King, White)) (5,2) `shouldBe` False
 
 testCanCapture :: Grader String
@@ -61,12 +62,14 @@ testPromote = assess "promote" 0 $ do
 
 testWinner :: Grader String
 testWinner = assess "winner" 0 $ do
-        check "that then winner wins" $ winner checkmate1 `shouldBe` Just (Victor White)
+        check "that then winner wins" $ winner win1 `shouldBe` Just (Victor White)
         check "that there is no winner when time runs out" $ winner timeOut `shouldBe` Just Stalemate
 
 testWhoWillWin :: Grader String
 testWhoWillWin = assess "whoWillWin" 0 $ do
-              check "that the winner will win" $ whoWillWin checkmate1 `shouldBe` Victor White
+              check "that the winner will win" $ whoWillWin win1 `shouldBe` Victor White
+              check "that there will be no winner when time runs out" $ whoWillWin timeOut `shouldBe` Stalemate
+
              
 testSyntax :: Grader String
 testSyntax = assess "syntax" 0 $ do
@@ -76,6 +79,21 @@ testSyntax = assess "syntax" 0 $ do
         check "that you don't use last" $ shouldNotBeCalled "last"
         check "that you don't use fst" $ shouldNotBeCalled "fst"
         check "that you don't use snd" $ shouldNotBeCalled "snd"
+
+testFunctions :: Grader String
+testFunctions = assess "functions" 0 $ do
+        check "that winner is defined" $ shouldBeDefined "winner"
+        check "that move is defined" $ shouldBeDefined "move"
+        check "that printGame is defined" $ shouldBeDefined "printGame"
+        check "that winner is refined" $ "winner" `shouldBeType` "winner :: Game -> Maybe Winner"
+        check "that whoWillWin is defined" $ shouldBeDefined "whoWillWin"
+        check "that bestMove is defined" $ shouldBeDefined "bestMove"
+        check "that readGame is defined" $ shouldBeDefined "readGame"
+        check "that showGame is defined" $ shouldBeDefined "showGame"
+        check "that writeGame is defined" $ shouldBeDefined "writeGame"
+        check "that loadGame is defined" $ shouldBeDefined "loadGame"
+        check "that putBestMove is defined" $ shouldBeDefined "putBestMove"
+        check "that main is defined" $ shouldBeDefined "main"
 
 tree :: Grader String
 tree = describe "Project 5" $ 
@@ -92,9 +110,10 @@ tree = describe "Project 5" $
          testWhoWillWin
        describe "Makin' it pretty" $ do
         testSyntax
-
+       describe "TODO" $ do
+        testFunctions
      
---run with runhaskell Main.hs in command line   
+--run with ./chessGPT --test in command line   
 runTests :: Int -> Bool -> IO ()
 runTests verb force = do
         let a = runGrader tree

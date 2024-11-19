@@ -21,5 +21,9 @@ cabal.project.local
 .ghc.environment.*
 chessGPT
 chessGPT.exe
+projectDesc.yaml
+#We should add these two back in if we ever do any timing tests
+timingParams-default.json
+timingParams.json
 *.orig
 *.swp

@@ -30,8 +30,11 @@ game1 = getGame $ move initialGame (Move ((1, 2), (Pawn, White)) (1,3))
 game2 :: Game
 game2 = getGame $ move game1 (Move ((1, 7), (Pawn, Black)) (1,6))
 
+bishopGame :: Game
+bishopGame = (White,[((1,1),(King,White)),((1,8),(Bishop,White))],[((8,8),(King,Black))],50)
+
 timeOut :: Game
 timeOut = (Black,[((1,1),(King,White))],[((8,8),(King,Black))],0)
 
-checkmate1 :: Game
-checkmate1 = (Black,[((1,1),(King,White))],[],50)
+win1 :: Game
+win1 = (Black,[((1,1),(King,White))],[],50)
