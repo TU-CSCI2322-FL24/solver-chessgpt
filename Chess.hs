@@ -58,24 +58,23 @@ move game@(team, whites, blacks,count) (Move old newPos)
       Nothing -> Just newGame -- Just a move, no pieces taken
     where newPiece = (newPos, (getPieceType old, getPieceTeam old))
           replacePiece pieces old new = new:(delete old pieces)
-          newGame@(newTeam, newWhites, newBlacks,newCount) = if old `elem` whites then (Black, replacePiece whites old newPiece, blacks,count-1) else (White, whites, replacePiece blacks old newPiece,count-1)
+          newGame@(newTeam, newWhites, newBlacks,newCount) = 
+            if old `elem` whites 
+              then (Black, replacePiece whites old newPiece, blacks,count-1) 
+              else (White, whites, replacePiece blacks old newPiece,count-1)
 
 inBounds :: Position -> Bool
 inBounds (x,y) = x>0 && x<9 && y>0 && y<9 --this will need to change if we change board size or indexing, ie starting at 0
 
 -- returns true if the diagonal is clear, false if it blocked
-diagClear :: Game -> Position -> Position -> Bool
-diagClear game (x1, y1) (x2, y2) = all (isNothing . getPiece game) positions
+pathClear :: Game -> Position -> Position -> Bool
+pathClear game (x1, y1) (x2, y2) = all (isNothing . getPiece game) positions
     where dx = signum (x2 - x1)
           dy = signum (y2 - y1)
           positions = takeWhile (/= (x2, y2)) $ tail [(x1 + i * dx, y1 + i * dy) | i <- [1..]]
 
--- returns true if the row/column is clear, false if is blocked
-rowClear :: Game -> Position -> Position -> Bool
-rowClear game (x1, y1) (x2, y2)
-    | x1 == x2 = all (isNothing . getPiece game) [(x1, y) | y <- [min y1 y2 + 1 .. max y1 y2 - 1]]
-    | y1 == y2 = all (isNothing . getPiece game) [(x, y1) | x <- [min x1 x2 + 1 .. max x1 x2 - 1]]
-    | otherwise = False
+isEmpty :: Game -> Position -> Bool
+isEmpty game loc = isNothing $ getPiece game loc
 
 -- returns true if the move can be made, and returns false if it cannot be made
 -- checks whether a move is in the bounds of the board
@@ -102,7 +101,7 @@ canMake game ((x1, y1), (Pawn, Black)) (x2, y2) =
         Nothing     -> False)
 canMake game piece@((x1, y1), (Rook, _)) (x2, y2) =
     inBounds (x2, y2) &&
-    ((x2 == x1 || y2 == y1) && rowClear game (x1, y1) (x2, y2)) &&  -- clear row/column
+    ((x2 == x1 || y2 == y1) && pathClear game (x1, y1) (x2, y2)) &&  -- clear row/column
     canCapture game (x2, y2) piece
 canMake game piece@((x1, y1), (Knight, _)) (x2, y2) =
     inBounds (x2, y2) &&
@@ -111,18 +110,18 @@ canMake game piece@((x1, y1), (Knight, _)) (x2, y2) =
 canMake game piece@((x1, y1), (Bishop, _)) (x2, y2) =
     inBounds (x2, y2) &&
     abs (x2 - x1) == abs (y2 - y1) &&  -- diagonal check
-    diagClear game (x1, y1) (x2, y2) &&
+    pathClear game (x1, y1) (x2, y2) &&
     canCapture game (x2, y2) piece
 canMake game piece@((x1, y1), (Queen, _)) (x2, y2) =
     inBounds (x2, y2) &&
-    ((x2 == x1 || y2 == y1) && rowClear game (x1, y1) (x2, y2) ||  -- rook-like move
-     abs (x2 - x1) == abs (y2 - y1) && diagClear game (x1, y1) (x2, y2)) &&  -- bishop-like move
+    ((x2 == x1 || y2 == y1) && pathClear game (x1, y1) (x2, y2) ||  -- rook-like move
+     abs (x2 - x1) == abs (y2 - y1) && pathClear game (x1, y1) (x2, y2)) &&  -- bishop-like move
     canCapture game (x2, y2) piece
 canMake game piece@((x1, y1), (King, team)) (x2, y2) =
     inBounds (x2, y2) &&
     abs (x2 - x1) <= 1 && abs (y2 - y1) <= 1 &&  -- one-square in any direction
     canCapture game (x2, y2) piece &&
-    not (danger game (x1, y1) team)  -- ensure king is not moving into check
+    null [op | op <- getTeamPieces game (oppositeTeam team), canMake game op (x2,y2)]
 
 -- takes a game, position, and piece and checks whether the position is currently occupied 
     -- if the piece is the same color -> return false  
@@ -133,9 +132,6 @@ canCapture game (x, y) og =
     case getPiece game (x, y) of 
         Just target -> getPieceTeam target /= getPieceTeam og
         Nothing     -> True
-
-danger :: Game -> Position -> Team -> Bool
-danger game pos team = not $ null [op | op <- getTeamPieces game (oppositeTeam team), canMake game op pos]
 
 promote :: Piece -> Piece
 promote ((x, 8), (Pawn, White)) = ((x, 8), (Queen, White))--we will need to change these cases for proper promotion eventually
@@ -160,22 +156,11 @@ possibleMoves game ((x,y), (Queen, team))        =
 possibleMoves game piece@((x,y), (King, team))   = 
   [Move piece move | move <- moves, canMake game piece move]
     where moves = [(x,y+1),(x+1,y),(x,y-1),(x-1,y),(x+1,y+1),(x+1,y-1),(x-1,y-1),(x-1,y+1)]
-  
---safeMoves :: Game -> Piece -> [Move]
---safeMoves game piece = [move | move@(Move old new) <- (possibleMoves game piece), not $ danger game new (getPieceTeam piece)]
 
 possibleGameMoves :: Game -> [Move]
 possibleGameMoves game@(team, whites, blacks,_) = 
   let pieces = if team == White then whites else blacks
   in concat [possibleMoves game p | p <- pieces]
-
-{-check :: Game -> Piece -> Bool
-check game piece@(pos, (King, team)) = danger game pos team
-check game _ = False-}
-
-{-checkmate :: Game -> Team -> Bool
-checkmate game team = (check game king) && (null $ possibleMoves game king)
-  where king = getKing game team-}
 
 winner :: Game -> Maybe Winner
 winner game@(_, whites, blacks,count)--should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
