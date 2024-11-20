@@ -3,6 +3,7 @@ import Data.Ord
 import Data.List
 import Data.List.Split
 import Data.Maybe 
+import Text.Read
 
 data Move = Move Piece Position deriving (Show, Eq)
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
@@ -60,20 +61,40 @@ move game@(team,pieces,count) (Move old newPos)
                 then (Black, replacePiece whites old newPiece++blacks,count-1) 
                 else (White, whites++replacePiece blacks old newPiece,count-1)
 
--- -- Format for a user-entered move is position of piece to move followed by the desired new position, e.g. 
--- readMove :: Game -> String -> Maybe Move
--- readMove game str = 
---     do 
---       let maybeWords = case (words str) of
---           (oldStr:newStr:_) -> Just (oldStr, newStr)
---           _ -> Nothing
---       (oldStr, newStr) <- maybeWords
---       let maybePositions = case (oldStr, newStr) of
---           (oldX:oldY_, newX:newY:_) -> Just ((oldX, oldY), (newX, newY))
---           _ -> Nothing
---       (oldPos, newPos) <- maybePositions
---       oldPiece <- getPiece game oldPos
---       return (Move oldPiece newPos)
+-- -- Format for a user-entered move is position of piece to move followed by the desired new position, e.g. a2 a4
+readMove :: Game -> String -> Maybe Move
+readMove game str = 
+    do 
+      (oldStr, newStr) <- case (words str) of
+          (oldStr:newStr:_) -> Just (oldStr, newStr)
+          _ -> Nothing
+      oldPos <- parsePosition oldStr
+      newPos <- parsePosition newStr
+      oldPieceParts <- getPiece game oldPos
+      return (Move (oldPos, oldPieceParts) newPos)
+
+parsePosition :: String -> Maybe Position
+parsePosition str = 
+  do
+    (xStr, yStr) <- case str of
+        xStr:yStr:[] -> Just (xStr, [yStr])
+        _ -> Nothing
+    x <- letterToNum xStr
+    y <- readMaybe yStr
+    return (x, y)
+
+letterToNum :: Char -> Maybe Int
+letterToNum letter = 
+    case letter of
+      'a' -> Just 1
+      'b' -> Just 2
+      'c' -> Just 3
+      'd' -> Just 4
+      'e' -> Just 5
+      'f' -> Just 6
+      'g' -> Just 7
+      'h' -> Just 8
+      _ -> Nothing
 
 inBounds :: Position -> Bool
 inBounds (x,y) = x>0 && x<9 && y>0 && y<9 --this will need to change if we change board size or indexing, ie starting at 0
@@ -211,3 +232,21 @@ toString game = unlines $ boardRows ++ [footer]
 
 printGame :: Game -> IO ()--written with the help of ChatGPT
 printGame game = putStrLn $ toString game
+
+-- For GHCI testing
+initialGame :: Game-- Written with the help of ChatGPT
+initialGame = (White, whitePieces, blackPieces,100)--may need to change turn count
+  where
+    whitePawns   = [((x, 2), (Pawn, White)) | x <- [1..8]]
+    whitePieces = [
+        ((1, 1), (Rook, White)), ((2, 1), (Knight, White)), ((3, 1), (Bishop, White)),
+        ((4, 1), (Queen, White)), ((5, 1), (King, White)),
+        ((6, 1), (Bishop, White)), ((7, 1), (Knight, White)), ((8, 1), (Rook, White))
+      ] ++ whitePawns
+
+    blackPawns   = [((x, 7), (Pawn, Black)) | x <- [1..8]]
+    blackPieces = [
+        ((1, 8), (Rook, Black)), ((2, 8), (Knight, Black)), ((3, 8), (Bishop, Black)),
+        ((4, 8), (Queen, Black)), ((5, 8), (King, Black)),
+        ((6, 8), (Bishop, Black)), ((7, 8), (Knight, Black)), ((8, 8), (Rook, Black))
+      ] ++ blackPawns
