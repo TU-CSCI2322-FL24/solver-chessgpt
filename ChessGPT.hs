@@ -1,6 +1,8 @@
 module ChessGPT where
 import Chess
 import Data.Maybe
+import Text.Read
+import Data.List.Split
 --Fogarty said these functions weren't necessary in chess.hs, but that they might be part of whoWillWin
 {-danger :: Game -> Position -> Team -> Bool
 danger game pos team = not $ null [op | op <- getTeamPieces game (oppositeTeam team), canMake game op pos]
@@ -32,18 +34,18 @@ readGame str = do
     team <- parseTeam teamStr
     pieces <- sequence [parsePiece pieceStr | pieceStr <- splitOn "," piecesStr]
     counter <- readMaybe counterStr
-    return $ (team, pieces, counterStr)
+    return (team, pieces, counter)
 
 parsePiece :: String -> Maybe Piece
 parsePiece str = do
     (teamStr, typeStr, xStr, yStr) <- case str of
-        (teamStr:typeStr:xStr:yStr:_) -> Just (teamStr, typeStr, xStr, yStr)
+        (teamStr:typeStr:xStr:yStr:_) -> Just ([teamStr], [typeStr], xStr, [yStr])
         _ -> Nothing
     team <- parseTeam teamStr
     pieceType <- parsePieceType typeStr
-    x <- readMaybe xStr
+    x <- letterToNum xStr
     y <- readMaybe yStr
-    return ((x, y), pieceType, team)
+    return ((x, y), (pieceType, team))
 
 parsePieceType :: String -> Maybe PieceType
 parsePieceType str = do
@@ -63,4 +65,4 @@ parseTeam str = do
     return team
 
 initialGameStr :: String
-initialGameStr = "w 0 wra1,wnb1,wnc1,wbf1,wqc1,wrh1,wkc1,wpa2,wpb2,wpc2,wpd2,wpe2,wpf2,wpg2,wph2,bra8,bnb8,bnc8,bnf8,bqc8,brh8,bkc8,bpa7,bpb7,bpc7,bpd7,bpe7,bpf7,bpg7,bph7"
+initialGameStr = "w 0 wra1,wnb1,wbc1,wqd1,wke1,wbf1,wng1,wrh1,wpa2,wpb2,wpc2,wpd2,wpe2,wpf2,wpg2,wph2,bra8,bnb8,bbc8,bqd8,bke8,bbf8,bng8,brh8,bpa7,bpb7,bpc7,bpd7,bpe7,bpf7,bpg7,bph7"
