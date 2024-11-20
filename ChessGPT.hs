@@ -26,7 +26,7 @@ bestMove game = undefined
 -- bra8,bnb8,bnc8,bnf8,bqc8,brh8,bkc8,bpa7,bpb7,bpc7,bpd7,bpe7,bpf7,bpg7,bph7
 readGame :: String -> Maybe Game
 readGame str = do
-    (teamStr, counterStr, piecesStr) <- case splitOn " " str of 
+    (teamStr, counterStr, piecesStr) <- case words str of 
         (teamStr:counterStr:piecesStr:_) -> Just (teamStr, counterStr, piecesStr)
         _ -> Nothing
     team <- parseTeam teamStr
