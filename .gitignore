@@ -21,5 +21,6 @@ cabal.project.local
 .ghc.environment.*
 chessGPT
 chessGPT.exe
+projectDesc.yaml
 *.orig
 *.swp
