@@ -89,9 +89,6 @@ canMake game@(turn,_,_,_) ((x1, y1), (Pawn, White)) (x2, y2) =
         Nothing     -> False)
 canMake game@(turn,_,_,_) ((x1, y1), (Pawn, Black)) (x2, y2) =
     turn == Black && inBounds (x2, y2) &&
-
-canMake game ((x1, y1), (Pawn, Black)) (x2, y2) =
-    inBounds (x2, y2) &&
     (x2 == x1 && y2 == y1 - 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
     (x2 == x1 && y1 == 7 && y2 == 5 && isNothing (getPiece game (x2, 6)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
     (abs (x2 - x1) == 1 && y2 == y1 - 1 &&
@@ -162,31 +159,29 @@ possibleGameMoves game@(team, whites, blacks,_) =
   in concat [possibleMoves game p | p <- pieces]
 
 winner :: Game -> Maybe Winner
-winner game@(turn, whites, blacks,count)--should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
-  | count<1=Just Stalemate
-  | null whiteKing = Just (Victor Black)
-  | null blackKing = Just (Victor White)
--- | (null (safeMoves game w)&&(turn==White))||
---   (null (safeMoves game b)&&(turn==Black)) = Just Stalemate
---     where (w:_) = whiteKing
---           (b:_) = blackKing
-  | otherwise = Nothing
-    where whiteKing = [piece | piece <- whites,(getPieceType piece)==King]
-          blackKing = [piece | piece <- blacks,(getPieceType piece)==King]
-    
-pieceToString :: Piece -> String
-pieceToString (_, (Pawn, Black))   = "♙"
-pieceToString (_, (Pawn, White))   = "♟"
-pieceToString (_, (Rook, Black))   = "♖"
-pieceToString (_, (Rook, White))   = "♜"
-pieceToString (_, (Knight, Black)) = "♘"
-pieceToString (_, (Knight, White)) = "♞"
-pieceToString (_, (Bishop, Black)) = "♗"
-pieceToString (_, (Bishop, White)) = "♝"
-pieceToString (_, (Queen, Black))  = "♕"
-pieceToString (_, (Queen, White))  = "♛"
-pieceToString (_, (King, Black))   = "♔"
-pieceToString (_, (King, White))   = "♚"
+winner game@(turn, whites, blacks,count) = --should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
+  if count<1 
+    then Just Stalemate 
+    else case kings of
+      ([],_) -> Just (Victor Black)
+      (_,[]) -> Just (Victor White)
+      ((w:_),(b:_)) -> if (null (possibleMoves game w)&&(turn==White))||
+                          (null (possibleMoves game b)&&(turn==Black)) then Just Stalemate else Nothing
+   where kings = ([piece | piece <- whites,(getPieceType piece)==King],[piece | piece <- blacks,(getPieceType piece)==King])
+
+pieceToString :: (PieceType, Team) -> String
+pieceToString (Pawn, Black)   = "♙"
+pieceToString (Pawn, White)   = "♟"
+pieceToString (Rook, Black)   = "♖"
+pieceToString (Rook, White)   = "♜"
+pieceToString (Knight, Black) = "♘"
+pieceToString (Knight, White) = "♞"
+pieceToString (Bishop, Black) = "♗"
+pieceToString (Bishop, White) = "♝"
+pieceToString (Queen, Black)  = "♕"
+pieceToString (Queen, White)  = "♛"
+pieceToString (King, Black)   = "♔"
+pieceToString (King, White)   = "♚"
 
 toString :: Game -> String
 toString game = unlines $ boardRows ++ [footer]
