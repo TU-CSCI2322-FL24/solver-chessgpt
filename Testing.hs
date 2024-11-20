@@ -23,7 +23,8 @@ testReplacePiece = assess "replacePiece" 0 $ do
         check "that replacePiece changes position" $ ((5, 2), (King, White)) `shouldBeIn` newW
         check "that replacePiece changes type" $ replacePiece [((5, 1), (King, White))] ((5, 1), (King, White)) ((5, 1), (Pawn, White)) `shouldBe` [((5, 1), (Pawn, White))]
         check "that replacePiece replaces a piece" $ newW `shouldNotContain` ((5, 1), (King, White)) 
-          where (team,whites,blacks,count) = initialGame
+          where (team,pieces,count) = initialGame
+                whites = getTeamPieces initialGame White
                 newW = replacePiece whites ((5, 1), (King, White)) ((5, 2), (King, White))
 
 testMove :: Grader String
@@ -32,7 +33,7 @@ testMove = assess "move" 0 $ do
         check "that move can move a pawn two spaces initially" $ getPiece (getGame $ move initialGame (Move ((1, 2), (Pawn, White)) (1,4))) (1,4) `shouldBe` Just (Pawn,White)
         check "that move can move a pawn one space again" $ getPiece (getGame $ move game2 (Move ((1, 3), (Pawn, White)) (1,4))) (1,4) `shouldBe` Just (Pawn,White)
         check "that move can't move a pawn two spaces again" $ move game1 (Move ((1, 3), (Pawn, White)) (1,5)) `shouldBe` Nothing
-        check "that a pawn can't move through another piece" $ move (White,[((1, 3), (Pawn, White))],[((1, 4), (Pawn, Black))],50) (Move ((1, 3), (Pawn, White)) (1,4)) `shouldBe` Nothing
+        check "that a pawn can't move through another piece" $ move (White,[((1, 3), (Pawn, White)),((1, 4), (Pawn, Black))],50) (Move ((1, 3), (Pawn, White)) (1,4)) `shouldBe` Nothing
         check "that a bishop can move diagonally" $ getPiece (getGame $ move bishopGame (Move ((1,8),(Bishop,White)) (7,2))) (7,2) `shouldBe` Just (Bishop,White)
         check "that move can't move a king initially" $ move initialGame (Move ((5, 1), (King, White)) (5,2)) `shouldBe` Nothing
         check "that Black can't move on the first turn" $ move initialGame (Move ((1, 7), (Pawn, Black)) (1,6)) `shouldBe` Nothing
@@ -44,7 +45,7 @@ testCanMake = assess "canMake" 0 $ do
         check "that a pawn can move two spaces initially" $ canMake initialGame ((1, 2), (Pawn, White)) (1,4) `shouldBe` True
         check "that a pawn can move one space again" $ canMake game2 ((1, 3), (Pawn, White)) (1,4) `shouldBe` True
         check "that a pawn can't move two spaces normally" $ canMake game1 ((1, 3), (Pawn, White)) (1,5) `shouldBe` False
-        check "that a pawn can't move through another piece" $ canMake (White,[((1, 3), (Pawn, White))],[((1, 4), (Pawn, Black))],50) ((1, 3), (Pawn, White)) (1,4) `shouldBe` False
+        check "that a pawn can't move through another piece" $ canMake (White,[((1, 3), (Pawn, White)),((1, 4), (Pawn, Black))],50) ((1, 3), (Pawn, White)) (1,4) `shouldBe` False
         check "that a king can't move initially" $ canMake initialGame ((5, 1), (King, White)) (5,2) `shouldBe` False
         check "that Black can't move on the first turn" $ canMake initialGame ((1, 7), (Pawn, Black)) (1,6) `shouldBe` False
         check "that a piece can't move out of bounds" $ canMake initialGame ((5, 1), (King, White)) (5,2) `shouldBe` False

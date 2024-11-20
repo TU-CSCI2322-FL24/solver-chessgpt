@@ -8,7 +8,7 @@ getGame (Just game) = game
 getGame Nothing = error "no game no life"
 
 initialGame :: Game-- Written with the help of ChatGPT
-initialGame = (White, whitePieces, blackPieces,100)--may need to change turn count
+initialGame = (White, whitePieces++blackPieces,100)--may need to change turn count
   where
     whitePawns   = [((x, 2), (Pawn, White)) | x <- [1..8]]
     whitePieces = [
@@ -31,10 +31,10 @@ game2 :: Game
 game2 = getGame $ move game1 (Move ((1, 7), (Pawn, Black)) (1,6))
 
 bishopGame :: Game
-bishopGame = (White,[((1,1),(King,White)),((1,8),(Bishop,White))],[((8,8),(King,Black))],50)
+bishopGame = (White,[((1,1),(King,White)),((1,8),(Bishop,White)),((8,8),(King,Black))],50)
 
 timeOut :: Game
-timeOut = (Black,[((1,1),(King,White))],[((8,8),(King,Black))],0)
+timeOut = (Black,[((1,1),(King,White)),((8,8),(King,Black))],0)
 
 win1 :: Game
-win1 = (Black,[((1,1),(King,White))],[],50)
+win1 = (Black,[((1,1),(King,White))],50)
