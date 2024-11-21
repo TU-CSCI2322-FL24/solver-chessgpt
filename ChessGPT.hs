@@ -59,10 +59,32 @@ parsePieceType str = do
         _ -> Nothing
     return pieceType
 
+showPiece :: Maybe (PieceType,Team) -> Char
+showPiece (Just (Pawn,_))   = 'p'
+showPiece (Just (Rook,_))   = 'r'
+showPiece (Just (Knight,_)) = 'n'
+showPiece (Just (Bishop,_)) = 'b'
+showPiece (Just (King,_))   = 'k'
+showPiece (Just (Queen,_))  = 'q'
+showPiece Nothing       = ' '
+
+showGame :: Game -> String
+showGame game = unlines [rowString y game | y <- [8,7..1]]
+  where rowString :: Int -> Game -> String
+        rowString y game = [showPiece $ getPiece game (x,y) | x <- [1..8]]
+
 parseTeam :: String -> Maybe Team
 parseTeam str = do
     team <- if str == "w" then Just White else if str == "b" then Just Black else Nothing
     return team
 
-initialGameStr :: String
-initialGameStr = "w 0 wra1,wnb1,wbc1,wqd1,wke1,wbf1,wng1,wrh1,wpa2,wpb2,wpc2,wpd2,wpe2,wpf2,wpg2,wph2,bra8,bnb8,bbc8,bqd8,bke8,bbf8,bng8,brh8,bpa7,bpb7,bpc7,bpd7,bpe7,bpf7,bpg7,bph7"
+writeGame :: Game -> FilePath -> IO ()
+writeGame game path = undefined
+
+loadGame :: FilePath -> IO Game 
+loadGame path = do
+  str <- readFile path
+  return $ fromJust $ readGame str
+
+putBestMove :: Game -> IO ()
+putBestMove game = putStrLn $ show $ bestMove game

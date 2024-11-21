@@ -209,6 +209,7 @@ winner game@(turn,pieces,count) = --should somehow account for stalemates - king
                           (null (possibleMoves game b)&&(turn==Black)) then Just Stalemate else Nothing
    where kings = [piece | piece <- pieces,(getPieceType piece)==King]
          teamKings = ([king | king <- kings,getPieceTeam king == White],[king | king <- kings,getPieceTeam king == Black])
+         
 pieceToString :: (PieceType, Team) -> String
 pieceToString (Pawn, Black)   = "♙"
 pieceToString (Pawn, White)   = "♟"

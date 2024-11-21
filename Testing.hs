@@ -68,8 +68,14 @@ testWinner = assess "winner" 0 $ do
 
 testWhoWillWin :: Grader String
 testWhoWillWin = assess "whoWillWin" 0 $ do
-              check "that the winner will win" $ whoWillWin win1 `shouldBe` Victor White
-              check "that there will be no winner when time runs out" $ whoWillWin timeOut `shouldBe` Stalemate
+        check "that the winner will win" $ whoWillWin win1 `shouldBe` Victor White
+        check "that there will be no winner when time runs out" $ whoWillWin timeOut `shouldBe` Stalemate
+
+testReadShowGame :: Grader String
+testReadShowGame = assess "readGame & showGame" 0 $ do
+        check "that readGame reads a game" $ readGame initialGameStr `shouldBe` Just initialGame
+        check "that readGame(showGame(game))==game" $ readGame (showGame initialGame) `shouldBe` Just initialGame
+
 --Only checks chessGPT.hs       
 testSyntax :: Grader String
 testSyntax = assess "syntax" 0 $ do
@@ -79,6 +85,7 @@ testSyntax = assess "syntax" 0 $ do
         check "that you don't use last" $ shouldNotBeCalled "last"
         check "that you don't use fst" $ shouldNotBeCalled "fst"
         check "that you don't use snd" $ shouldNotBeCalled "snd"
+        check "that you don't use fromJust" $ shouldNotBeCalled "fromJust"
 
 tree :: Grader String
 tree = describe "Project 5" $ 
@@ -93,6 +100,7 @@ tree = describe "Project 5" $
         testWinner
        describe "ChessGPT" $ do
          testWhoWillWin
+         testReadShowGame
        describe "Makin' it pretty" $ do
         testSyntax
      
