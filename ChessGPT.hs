@@ -1,8 +1,8 @@
 module ChessGPT where
 import Chess
 
-whoWillWin :: Game -> Winner--maybe use point system?https://www.chess.com/terms/chess-piece-value
-whoWillWin game = ((material game) * 10) + (spaceControlled game) + (pawnStructure game) + ((kingSafety game) * 6)
+whoWillWin :: Game -> Winner
+whoWillWin game = if (((material game) * 10) + (spaceControlled game) + (pawnStructure game) + ((kingSafety game) * 6)) < 0 then Black else White
 
 material :: Game -> Integer
 material (_,whites,blacks) = wMaterial - bMaterial
