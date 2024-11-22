@@ -59,19 +59,38 @@ parsePieceType str = do
         _ -> Nothing
     return pieceType
 
-showPiece :: Maybe (PieceType,Team) -> Char
-showPiece (Just (Pawn,_))   = 'p'
-showPiece (Just (Rook,_))   = 'r'
-showPiece (Just (Knight,_)) = 'n'
-showPiece (Just (Bishop,_)) = 'b'
-showPiece (Just (King,_))   = 'k'
-showPiece (Just (Queen,_))  = 'q'
-showPiece Nothing       = ' '
+showPiece :: Maybe (PieceType,Team) -> String
+showPiece (Just (Pawn,White))   = "wp"
+showPiece (Just (Pawn,Black))   = "bp"
+showPiece (Just (Rook,White))   = "wr"
+showPiece (Just (Rook,Black))   = "br"
+showPiece (Just (Knight,White)) = "wn"
+showPiece (Just (Knight,Black)) = "bn"
+showPiece (Just (Bishop,White)) = "wb"
+showPiece (Just (Bishop,Black)) = "bb"
+showPiece (Just (King,White))   = "wk"
+showPiece (Just (King,Black))   = "bk"
+showPiece (Just (Queen,White))  = "wq"
+showPiece (Just (Queen,Black))  = "bq"
+showPiece Nothing       = " "
+
+showPos :: Position -> String
+showPos (1,y) = "a" ++ show y
+showPos (2,y) = "b" ++ show y
+showPos (3,y) = "c" ++ show y
+showPos (4,y) = "d" ++ show y
+showPos (5,y) = "e" ++ show y
+showPos (6,y) = "f" ++ show y
+showPos (7,y) = "g" ++ show y
+showPos (8,y) = "h" ++ show y
 
 showGame :: Game -> String
-showGame game = unlines [rowString y game | y <- [8,7..1]]
+showGame game@(turn,_,turns) = showTurn turn ++ " " ++ show turns ++ " " ++ unlines [rowString y game | y <- [1..8]]
   where rowString :: Int -> Game -> String
-        rowString y game = [showPiece $ getPiece game (x,y) | x <- [1..8]]
+        rowString y game = unwords [showPiece (getPiece game (x,y)) ++ showPos (x,y) | x <- [1..8]]
+        showTurn :: Team -> String
+        showTurn White = "w"
+        showTurn Black = "b"
 
 parseTeam :: String -> Maybe Team
 parseTeam str = do

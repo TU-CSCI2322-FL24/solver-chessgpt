@@ -10,6 +10,7 @@ import Test.Grader.Eval
 import Test.Grader.Rubric
 import Control.Monad.Extra
 import Control.Monad.Trans.RWS
+import System.IO.Unsafe
 
 --add new Grader String functions for each assess statement
 testGetPiece :: Grader String
@@ -74,7 +75,12 @@ testWhoWillWin = assess "whoWillWin" 0 $ do
 testReadShowGame :: Grader String
 testReadShowGame = assess "readGame & showGame" 0 $ do
         check "that readGame reads a game" $ readGame initialGameStr `shouldBe` Just initialGame
+        check "that showGame shows a game" $ showGame initialGame `shouldBe` initialGameStr
         check "that readGame(showGame(game))==game" $ readGame (showGame initialGame) `shouldBe` Just initialGame
+
+--testLoadGame :: Grader String
+--testLoadGame = assess "loadGame" 0 $ do
+--        check "that loadGame loads a game" $ unsafePerformIO $ loadGame "input1" `shouldBe` initialGame
 
 --Only checks chessGPT.hs       
 testSyntax :: Grader String
@@ -105,7 +111,7 @@ tree = describe "Project 5" $
         testSyntax
      
 --run with ./chessGPT --test in command line   
-runTests :: Int -> Bool -> IO ()
+runTests :: Int -> Bool -> IO ()--how do test io
 runTests verb force = do
         let a = runGrader tree
         format <- makeFormat verb force "projectDesc.yaml"
