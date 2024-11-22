@@ -25,7 +25,8 @@ initialGame = (White, whitePieces++blackPieces,100)--may need to change turn cou
       ] ++ blackPawns
 
 initialGameStr :: String
-initialGameStr = "w 100 wra1,wnb1,wbc1,wqd1,wke1,wbf1,wng1,wrh1,wpa2,wpb2,wpc2,wpd2,wpe2,wpf2,wpg2,wph2,bra8,bnb8,bbc8,bqd8,bke8,bbf8,bng8,brh8,bpa7,bpb7,bpc7,bpd7,bpe7,bpf7,bpg7,bph7"
+initialGameStr = 
+    "w\n100\nwra1 wnb1 wbc1 wqd1 wke1 wbf1 wng1 wrh1 wpa2 wpb2 wpc2 wpd2 wpe2 wpf2 wpg2 wph2 bra8 bnb8 bbc8 bqd8 bke8 bbf8 bng8 brh8 bpa7 bpb7 bpc7 bpd7 bpe7 bpf7 bpg7 bph7"
 
 game1 :: Game
 game1 = getGame $ move initialGame (Move ((1, 2), (Pawn, White)) (1,3))

@@ -24,15 +24,15 @@ bestMove :: Game -> Move--will need helper functions, as well as a way to determ
 bestMove game = undefined
 
 -- Format: currentTeam(b|w) [space] turnCounter [space] list of pieces((b|w)(p|q|k|r|b|n)(a..h)(1..8)) separated by commas
--- Example for Initial Game: w 0 wra1,wnb1,wnc1,wbf1,wqc1,wrh1,wkc1,wpa2,wpb2,wpc2,wpd2,wpe2,wpf2,wpg2,wph2,
--- bra8,bnb8,bnc8,bnf8,bqc8,brh8,bkc8,bpa7,bpb7,bpc7,bpd7,bpe7,bpf7,bpg7,bph7
+-- Example for Initial Game: w\n100\nwra1 wnb1 wbc1 wqd1 wke1 wbf1 wng1 wrh1 
+-- wpa2 wpb2 wpc2 wpd2 wpe2 wpf2 wpg2 wph2 bra8 bnb8 bbc8 bqd8 bke8 bbf8 bng8 brh8 bpa7 bpb7 bpc7 bpd7 bpe7 bpf7 bpg7 bph7
 readGame :: String -> Maybe Game
 readGame str = do
-    (teamStr, counterStr, piecesStr) <- case words str of 
+    (teamStr, counterStr, piecesStr) <- case lines str of 
         (teamStr:counterStr:piecesStr:_) -> Just (teamStr, counterStr, piecesStr)
         _ -> Nothing
     team <- parseTeam teamStr
-    pieces <- sequence [parsePiece pieceStr | pieceStr <- splitOn "," piecesStr]
+    pieces <- sequence [parsePiece pieceStr | pieceStr <- words piecesStr]
     counter <- readMaybe counterStr
     return (team, pieces, counter)
 
@@ -59,20 +59,19 @@ parsePieceType str = do
         _ -> Nothing
     return pieceType
 
-showPiece :: Maybe (PieceType,Team) -> String
-showPiece (Just (Pawn,White))   = "wp"
-showPiece (Just (Pawn,Black))   = "bp"
-showPiece (Just (Rook,White))   = "wr"
-showPiece (Just (Rook,Black))   = "br"
-showPiece (Just (Knight,White)) = "wn"
-showPiece (Just (Knight,Black)) = "bn"
-showPiece (Just (Bishop,White)) = "wb"
-showPiece (Just (Bishop,Black)) = "bb"
-showPiece (Just (King,White))   = "wk"
-showPiece (Just (King,Black))   = "bk"
-showPiece (Just (Queen,White))  = "wq"
-showPiece (Just (Queen,Black))  = "bq"
-showPiece Nothing       = " "
+showPiece :: (PieceType,Team) -> String
+showPiece (Pawn,White)  = "wp"
+showPiece (Pawn,Black)  = "bp"
+showPiece (Rook,White)  = "wr"
+showPiece (Rook,Black)  = "br"
+showPiece (Knight,White) = "wn"
+showPiece (Knight,Black) = "bn"
+showPiece (Bishop,White) = "wb"
+showPiece (Bishop,Black) = "bb"
+showPiece (King,White)  = "wk"
+showPiece (King,Black)  = "bk"
+showPiece (Queen,White) = "wq"
+showPiece (Queen,Black) = "bq"
 
 showPos :: Position -> String
 showPos (1,y) = "a" ++ show y
@@ -85,10 +84,8 @@ showPos (7,y) = "g" ++ show y
 showPos (8,y) = "h" ++ show y
 
 showGame :: Game -> String
-showGame game@(turn,_,turns) = showTurn turn ++ " " ++ show turns ++ " " ++ unlines [rowString y game | y <- [1..8]]
-  where rowString :: Int -> Game -> String
-        rowString y game = unwords [showPiece (getPiece game (x,y)) ++ showPos (x,y) | x <- [1..8]]
-        showTurn :: Team -> String
+showGame game@(turn, pieces, turns) = unlines [showTurn turn, show turns, unwords [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]]
+  where showTurn :: Team -> String
         showTurn White = "w"
         showTurn Black = "b"
 
