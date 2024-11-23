@@ -104,7 +104,7 @@ pathClear :: Game -> Position -> Position -> Bool
 pathClear game (x1, y1) (x2, y2) = all (isNothing . getPiece game) positions
     where dx = signum (x2 - x1)
           dy = signum (y2 - y1)
-          positions = takeWhile (/= (x2, y2)) $ tail [(x1 + i * dx, y1 + i * dy) | i <- [1..]]
+          positions = takeWhile (/= (x2, y2)) [(x1 + i * dx, y1 + i * dy) | i <- [1..]]
 
 isEmpty :: Game -> Position -> Bool
 isEmpty game loc = isNothing $ getPiece game loc
@@ -209,7 +209,7 @@ winner game@(turn,pieces,count) = --should somehow account for stalemates - king
                           (null (possibleMoves game b)&&(turn==Black)) then Just Stalemate else Nothing
    where kings = [piece | piece <- pieces,(getPieceType piece)==King]
          teamKings = ([king | king <- kings,getPieceTeam king == White],[king | king <- kings,getPieceTeam king == Black])
-         
+
 pieceToString :: (PieceType, Team) -> String
 pieceToString (Pawn, Black)   = "♙"
 pieceToString (Pawn, White)   = "♟"
