@@ -35,10 +35,15 @@ testMove = assess "move" 0 $ do
         check "that move can move a pawn one space again" $ getPiece (getGame $ move game2 (Move ((1, 3), (Pawn, White)) (1,4))) (1,4) `shouldBe` Just (Pawn,White)
         check "that move can't move a pawn two spaces again" $ move game1 (Move ((1, 3), (Pawn, White)) (1,5)) `shouldBe` Nothing
         check "that a pawn can't move through another piece" $ move (White,[((1, 3), (Pawn, White)),((1, 4), (Pawn, Black))],50) (Move ((1, 3), (Pawn, White)) (1,4)) `shouldBe` Nothing
-        check "that a bishop can move diagonally" $ getPiece (getGame $ move bishopGame (Move ((1,8),(Bishop,White)) (7,2))) (7,2) `shouldBe` Just (Bishop,White)
+        check "that a bishop can move diagonally" $ getPiece (getGame $ move bishopGame1 (Move ((1,8),(Bishop,White)) (7,2))) (7,2) `shouldBe` Just (Bishop,White)
+        check "that a bishop can't move horizontally" $ move bishopGame1 (Move ((1,8),(Bishop,White)) (7,8)) `shouldBe` Nothing
+        check "that a bishop can't move vertically" $ move bishopGame1 (Move ((1,8),(Bishop,White)) (1,2)) `shouldBe` Nothing
+        check "that a bishop can't move through a piece" $ move bishopGame2 (Move ((1,8),(Bishop,White)) (7,2)) `shouldBe` Nothing
+        check "that a bishop can take a piece" $ pieces `shouldNotContain` ((2,7),(Bishop,Black))
         check "that move can't move a king initially" $ move initialGame (Move ((5, 1), (King, White)) (5,2)) `shouldBe` Nothing
         check "that Black can't move on the first turn" $ move initialGame (Move ((1, 7), (Pawn, Black)) (1,6)) `shouldBe` Nothing
         check "that a piece can't move out of bounds" $ move initialGame (Move ((5, 1), (King, White)) (5,0)) `shouldBe` Nothing
+    where (_,pieces,_) = getGame $ move bishopGame3 (Move ((1,8),(Bishop,White)) (2,7))
 
 testCanMake :: Grader String
 testCanMake = assess "canMake" 0 $ do
