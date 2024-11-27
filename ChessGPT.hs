@@ -84,7 +84,7 @@ showPos (7,y) = "g" ++ show y
 showPos (8,y) = "h" ++ show y
 
 showGame :: Game -> String
-showGame game@(turn, pieces, turns) = unlines [showTurn turn, show turns, unwords [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]]
+showGame game@(turn, pieces, turns) = init $ unlines [showTurn turn, show turns, unwords [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]]
   where showTurn :: Team -> String
         showTurn White = "w"
         showTurn Black = "b"
