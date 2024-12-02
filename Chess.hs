@@ -50,12 +50,11 @@ move game@(team,pieces,count) (Move old newPos)
   | getPieceTeam old /= team      = Nothing -- Attempted move is by the wrong team
   | otherwise = 
     case (getPiece game newPos) of 
-      Just target -> Just $ if team == White then (newTeam, pieces,count-1) else (newTeam, pieces,count-1)
+      Just target -> Just (newTeam, replacePiece pieces (newPos,target) newPiece,count-1)
       Nothing -> Just newGame -- Just a move, no pieces taken
     where whites = getTeamPieces game White
           blacks = getTeamPieces game Black
           newPiece = (newPos, (getPieceType old, getPieceTeam old))
-          replacePiece pieces old new = new:(delete old pieces)
           newGame@(newTeam, pieces,newCount) = 
               if old `elem` whites 
                 then (Black, replacePiece whites old newPiece++blacks,count-1) 
@@ -104,7 +103,7 @@ pathClear :: Game -> Position -> Position -> Bool
 pathClear game (x1, y1) (x2, y2) = all (isNothing . getPiece game) positions
     where dx = signum (x2 - x1)
           dy = signum (y2 - y1)
-          positions = takeWhile (/= (x2, y2)) $ tail [(x1 + i * dx, y1 + i * dy) | i <- [1..]]
+          positions = takeWhile (/= (x2, y2)) [(x1 + i * dx, y1 + i * dy) | i <- [1..]]
 
 isEmpty :: Game -> Position -> Bool
 isEmpty game loc = isNothing $ getPiece game loc
@@ -122,7 +121,7 @@ canMake game@(turn,_,_) ((x1, y1), (Pawn, White)) (x2, y2) =
     (x2 == x1 && y1 == 2 && y2 == 4 && isNothing (getPiece game (x2, 3)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
     (abs (x2 - x1) == 1 && y2 == y1 + 1 &&  
     case getPiece game (x2, y2) of -- diagonal capture
-        Just target -> snd target == Black
+        Just (_,team) -> team == Black
         Nothing     -> False)
 canMake game@(turn,_,_) ((x1, y1), (Pawn, Black)) (x2, y2) =
     turn == Black && inBounds (x2, y2) &&
@@ -130,7 +129,7 @@ canMake game@(turn,_,_) ((x1, y1), (Pawn, Black)) (x2, y2) =
     (x2 == x1 && y1 == 7 && y2 == 5 && isNothing (getPiece game (x2, 6)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
     (abs (x2 - x1) == 1 && y2 == y1 - 1 &&
     case getPiece game (x2, y2) of -- diagonal capture
-        Just target -> snd target == White
+        Just (_,team) -> team == White
         Nothing     -> False)
 canMake game@(turn,_,_) piece@((x1, y1), (Rook, team)) (x2, y2) =
     turn == team && inBounds (x2, y2) &&
@@ -150,11 +149,12 @@ canMake game@(turn,_,_) piece@((x1, y1), (Queen, team)) (x2, y2) =
     ((x2 == x1 || y2 == y1) && pathClear game (x1, y1) (x2, y2) ||  -- rook-like move
      abs (x2 - x1) == abs (y2 - y1) && pathClear game (x1, y1) (x2, y2)) &&  -- bishop-like move
     canCapture game (x2, y2) piece
-canMake game@(turn,_,_) piece@((x1, y1), (King, team)) (x2, y2) =
+canMake game@(turn,pieces,turns) piece@((x1, y1), (King, team)) (x2, y2) =
     turn == team && inBounds (x2, y2) &&
     abs (x2 - x1) <= 1 && abs (y2 - y1) <= 1 &&  -- one-square in any direction
     canCapture game (x2, y2) piece &&
-    null [op | op <- getTeamPieces game (oppositeTeam team), canMake game op (x2,y2)]--prevents king from moving into check
+    null [op | op <- getTeamPieces game (oppositeTeam team), canMake newGame op (x2,y2)]--prevents king from moving into check
+      where newGame = (oppositeTeam turn,pieces,turns-1)
 
 -- takes a game, position, and piece and checks whether the position is currently occupied 
     -- if the piece is the same color -> return false  
@@ -163,7 +163,7 @@ canMake game@(turn,_,_) piece@((x1, y1), (King, team)) (x2, y2) =
 canCapture :: Game -> Position -> Piece -> Bool
 canCapture game (x, y) og = 
     case getPiece game (x, y) of 
-        Just target -> snd target /= getPieceTeam og
+        Just (_,team) -> team /= getPieceTeam og
         Nothing     -> True
 
 promote :: Piece -> Piece
@@ -209,7 +209,7 @@ winner game@(turn,pieces,count) = --should somehow account for stalemates - king
                           (null (possibleMoves game b)&&(turn==Black)) then Just Stalemate else Nothing
    where kings = [piece | piece <- pieces,(getPieceType piece)==King]
          teamKings = ([king | king <- kings,getPieceTeam king == White],[king | king <- kings,getPieceTeam king == Black])
-         
+
 pieceToString :: (PieceType, Team) -> String
 pieceToString (Pawn, Black)   = "♙"
 pieceToString (Pawn, White)   = "♟"
