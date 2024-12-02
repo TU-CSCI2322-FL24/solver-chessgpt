@@ -3,7 +3,14 @@ import Chess
 
 
 whoWillWin :: Game -> Winner
-whoWillWin game = if ((material game) * 10) + (spaceControlled game) < 0 then Victor Black else Victor White
+whoWillWin game = 
+
+whoMightWin :: Game -> Int -> (Rating, Move)
+whoWillWin game depth = aux game depth
+      where aux game depth = if depth > 0 then aux game depth else (rateGame game, )
+
+rateGame :: Game -> Int
+rateGame game = ((material game) * 10) --mmmm+ (spaceControlled game)
 
 material :: Game -> Int
 material (_,pieces,_) = wMaterial - bMaterial
@@ -16,10 +23,10 @@ pieceValue pType = if pType == Pawn then 1
                    else if pType == Knight then 3
                    else if pType == Bishop then 3
                    else if pType == Queen then 9
-                   else 100
+                   else 1000
 
-spaceControlled :: Game -> Int
-spaceControlled (_,pieces,int) = (length (possibleGameMoves (White,pieces,int))) - (length (possibleGameMoves (Black,pieces,int)))--int is useless here?
+{-spaceControlled :: Game -> Int
+spaceControlled (_,pieces,int) = (length (possibleGameMoves (White,pieces,int))) - (length (possibleGameMoves (Black,pieces,int)))--int is useless here?-}
 
 {-pawnStructure :: Game -> Int
 pawnStructure game = wStructure - bStructure
