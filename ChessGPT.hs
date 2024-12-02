@@ -2,7 +2,7 @@ module ChessGPT where
 import Chess
 
 whoWillWin :: Game -> Winner
-whoWillWin game = if (((material game) * 10) + (spaceControlled game) + (pawnStructure game) + ((kingSafety game) * 6)) < 0 then Victor Black else Victor White
+whoWillWin game = if ((material game) * 10) + (spaceControlled game) < 0 then Victor Black else Victor White
 
 material :: Game -> Int
 material (_,pieces,_) = wMaterial - bMaterial
@@ -20,7 +20,7 @@ pieceValue pType = if pType == Pawn then 1
 spaceControlled :: Game -> Int
 spaceControlled (_,pieces,int) = (length (possibleGameMoves (White,pieces,int))) - (length (possibleGameMoves (Black,pieces,int)))--int is useless here?
 
-pawnStructure :: Game -> Int
+{-pawnStructure :: Game -> Int
 pawnStructure game = wStructure - bStructure
     where (_,pieces,_) = game
           wPawns = [(pos, (pType, team)) | (pos, (pType, team)) <- pieces, pType == Pawn, team == White]
@@ -34,7 +34,7 @@ pawnStructure game = wStructure - bStructure
           leftBPawn (x,y) = (getPiece game (x-1,y-1)) == Maybe ((x-1,y-1), (Pawn, Black))
           rightBPawn (x,y) = (getPiece game (x+1,y-1)) == Maybe ((x+1,y-1), (Pawn, Black))
           bHelper (x,y) = if leftBPawn (x,y) && rightBPawn (x,y) then 2 else if leftBPawn (x,y) || rightBPawn (x,y) then 1 else 0
-          bStructure = sum [bHelper(x,y) | ((x,y), (_,_)) <- bPawns]
+          bStructure = sum [bHelper(x,y) | ((x,y), (_,_)) <- bPawns]-}
           
 
 {-adjacentTeamPieces :: Game -> Piece -> [Pieces]
@@ -44,7 +44,7 @@ adjacentTeamPieces game piece = if getPieceTeam piece == white then length [pos 
                       adjacentPositions = [(pieceX-1, pieceY+1),(pieceX, pieceY+1),(pieceX+1, pieceY+1),(pieceX-1, pieceY)
                                        ,(pieceX+1, pieceY),(pieceX-1, pieceY-1),(pieceX, pieceY-1),(pieceX+1, pieceY-1)]-}
 
-kingSafety :: Game -> Int--at least 2 pawns in front of king
+{-kingSafety :: Game -> Int--at least 2 pawns in front of king
 kingSafety game = (if wKingDefense == 3 then 2 else wKingDefense) - (if bKingDefense == 3 then 2 else bKingDefense)
     where (_,pieces,_) = game
           wKing = [(pos, (pType, team)) | (pos, (pType, team)) <- pieces, pType == King, team == White]
@@ -56,7 +56,7 @@ kingSafety game = (if wKingDefense == 3 then 2 else wKingDefense) - (if bKingDef
           leftBPawn (x,y) = if (getPiece game (x-1,y-1)) == Maybe ((x-1,y-1), (Pawn, Black)) then 1 else 0
           middleBPawn (x,y) = if (getPiece game (x,y-1)) == Maybe ((x,y-1), (Pawn, Black)) then 1 else 0
           rightBPawn (x,y) = if (getPiece game (x+1,y-1)) == Maybe ((x+1,y-1), (Pawn, Black)) then 1 else 0
-          bKingDefense = leftBPawn (getPosition bKing) + middleBPawn (getPosition bKing) + rightBPawn (getPosition bKing)
+          bKingDefense = leftBPawn (getPosition bKing) + middleBPawn (getPosition bKing) + rightBPawn (getPosition bKing)-}
 
 
 
