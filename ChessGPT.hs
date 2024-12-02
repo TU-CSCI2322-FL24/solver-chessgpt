@@ -1,19 +1,18 @@
 module ChessGPT where
 import Chess
+import Text.Read
+import Data.Maybe
 
 
 whoWillWin :: Game -> Winner
-whoWillWin game = 
+whoWillWin game = undefined
 
-whoMightWin :: Game -> Int -> (Rating, Move)
-whoWillWin game depth = aux game depth
-      where aux game depth = if depth > 0 then aux game depth else (rateGame game, )
+whoMightWin :: Game -> Int -> (Int, Move)
+whoMightWin game depth = undefined -- aux game depth
+      -- where aux game depth = if depth > 0 then aux game depth else (rateGame game, )
 
 rateGame :: Game -> Int
-rateGame game = ((material game) * 10) --mmmm+ (spaceControlled game)
-
-material :: Game -> Int
-material (_,pieces,_) = wMaterial - bMaterial
+rateGame (_,pieces,_) = wMaterial - bMaterial
     where wMaterial = sum [pieceValue pType | (_, (pType, team)) <- pieces, team == White]
           bMaterial = sum [pieceValue pType | (_, (pType, team)) <- pieces, team == Black]
 
