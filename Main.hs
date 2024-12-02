@@ -8,3 +8,9 @@ import System.Console.GetOpt
 main :: IO()
 main = do
   runTests 1 True --runs tests, do not touch
+  {-let (flags,inputs,errors) = getOpt Permute options args
+  putStrLn $ show (flags,inputs,errors)
+  if Help `elem` flags
+  then putStrLn $ usageInfo "ChessGPT [options] [filename] chess gay." options
+  else 
+    do let fName = -}

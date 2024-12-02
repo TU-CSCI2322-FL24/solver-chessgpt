@@ -97,10 +97,10 @@ parseTeam str = do
 writeGame :: Game -> FilePath -> IO ()
 writeGame game path = undefined
 
-loadGame :: FilePath -> IO Game 
+loadGame :: FilePath -> IO (Maybe Game)
 loadGame path = do
   str <- readFile path
-  return $ fromJust $ readGame str
+  return $ readGame str
 
 putBestMove :: Game -> IO ()
 putBestMove game = putStrLn $ show $ bestMove game

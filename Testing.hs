@@ -64,7 +64,7 @@ testMove = assess "move" 0 $ do
         check "that Black can't move on the first turn" $ move initialGame (Move ((1, 7), (Pawn, Black)) (1,6)) `shouldBe` Nothing
         check "that White can't move on the second turn" $ move pawnGame1 (Move ((1,3),(Pawn,White)) (1,4)) `shouldBe` Nothing
     where (_,pawnPieces,_)   = getGame $ move pawnGame3 (Move ((2,7),(Pawn,White)) (1,8))
-          (_,bpawnPieces,_)   = getGame $ move pawnGame4 (Move ((1,8),(Pawn,Black)) (2,7))
+          (_,bpawnPieces,_)  = getGame $ move pawnGame4 (Move ((1,8),(Pawn,Black)) (2,7))
           (_,bishopPieces,_) = getGame $ move bishopGame3 (Move ((1,8),(Bishop,White)) (2,7))
           (_,knightPieces,_) = getGame $ move knightGame1 (Move ((3,7),(Knight,White)) (1,8))
           (_,rookPieces,_)   = getGame $ move rookGame1 (Move ((2,7),(Rook,White)) (1,7))
