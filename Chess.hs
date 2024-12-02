@@ -180,7 +180,7 @@ possibleMoves game piece@((x, y), (Rook, team))   =
   [Move ((x, y), (Rook,team) ) (xs, y) | xs <- [1..8], canMake game piece (xs,y)]
 possibleMoves game piece@((x,y), (Knight, team)) = 
   [Move piece move | move <- moves,canMake game piece move]
-    where moves = [(x+3,y+1),(x+1,y+3),(x+3,y-1),(x-1,y+3),(x-3,y+1),(x+1,y-3),(x-1,y-3),(x-3,y-1)]
+    where moves = [(x+2,y+1),(x+1,y+2),(x+2,y-1),(x-1,y+2),(x-2,y+1),(x+1,y-2),(x-1,y-2),(x-2,y-1)]
 possibleMoves game piece@((x, y), (Bishop, team))    = 
   [Move piece move | move <- moves,canMake game piece move]--ensures moves are in bounds
     where moves = [(x+1,y+1),(x+2,y+2),(x+3,y+3),(x+4,y+4),(x+5,y+5),(x+6,y+6),(x+7,y+7),(x+8,y+8),(x-1,y-1),(x-2,y-2),(x-3,y-3),(x-4,y-4),(x-5,y-5),(x-6,y-6),(x-7,y-7),(x-8,y-8)]
@@ -233,3 +233,4 @@ toString game = unlines $ boardRows ++ [footer]
 
 printGame :: Game -> IO ()--written with the help of ChatGPT
 printGame game = putStrLn $ toString game
+

@@ -3,15 +3,24 @@ import Chess
 import Text.Read
 import Data.Maybe
 
+type Rating = Int
 
+-- Games passed to whoWillWin should have a forced checkmate on the board of no more than mate in 3
+-- Will cause a stack overflow if count is too high or if too many moves need to be evaluated
 whoWillWin :: Game -> Winner
-whoWillWin game = undefined
+whoWillWin game@(team, pieces, count) = 
+    case winner game of
+        Just (Victor Black) -> Victor Black
+        Just (Victor White) -> Victor White
+        Just Stalemate -> Stalemate
+        Nothing -> if Victor White `elem` outcomes then Victor White else Victor Black
+            where validMoves = possibleGameMoves game
+                  outcomes = [whoWillWin nextGame | nextMove <- validMoves, Just nextGame <- [move (team, pieces, count-1) nextMove]]
 
-whoMightWin :: Game -> Int -> (Int, Move)
-whoMightWin game depth = undefined -- aux game depth
-      -- where aux game depth = if depth > 0 then aux game depth else (rateGame game, )
+whoMightWin :: Game -> Int -> (Rating, Move)
+whoMightWin game depth = undefined 
 
-rateGame :: Game -> Int
+rateGame :: Game -> Rating
 rateGame (_,pieces,_) = wMaterial - bMaterial
     where wMaterial = sum [pieceValue pType | (_, (pType, team)) <- pieces, team == White]
           bMaterial = sum [pieceValue pType | (_, (pType, team)) <- pieces, team == Black]
