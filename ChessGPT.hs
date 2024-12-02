@@ -6,16 +6,23 @@ import Data.Maybe
 type Rating = Int
 
 -- Games passed to whoWillWin should have a forced checkmate on the board of no more than mate in 3
--- Will cause a stack overflow if count is too high or if too many moves need to be evaluated
-whoWillWin :: Game -> Winner
-whoWillWin game@(team, pieces, count) = 
+-- use limit to prevent stack overflow error, ensure that limit is greater than the number of moves for checkmate
+whoWillWin :: Game -> Int -> Maybe Winner
+whoWillWin _ 0 = Nothing
+whoWillWin game@(team, pieces, count) limit = 
     case winner game of
-        Just (Victor Black) -> Victor Black
-        Just (Victor White) -> Victor White
-        Just Stalemate -> Stalemate
-        Nothing -> if Victor White `elem` outcomes then Victor White else Victor Black
+        Just (Victor Black) ->  Just $ Victor Black 
+        Just (Victor White) ->  Just $ Victor White 
+        Just Stalemate      ->  Just Stalemate
+        Nothing ->  if Just (Victor team) `elem` outcomes then Just (Victor team)
+                    else if Just Stalemate `elem` outcomes then Just Stalemate
+                    else if Just (Victor (oppositeTeam team)) `elem` outcomes then Just (Victor (oppositeTeam team))
+                    else Nothing
             where validMoves = possibleGameMoves game
-                  outcomes = [whoWillWin nextGame | nextMove <- validMoves, Just nextGame <- [move (team, pieces, count-1) nextMove]]
+                  outcomes = [whoWillWin nextGame (limit - 1) | nextMove <- validMoves, Just nextGame <- [move (team, pieces, count - 1) nextMove]]
+
+bestMove :: Game -> Move
+bestMove game@(team, pieces, count) = undefined
 
 whoMightWin :: Game -> Int -> (Rating, Move)
 whoMightWin game depth = undefined 
@@ -74,12 +81,6 @@ kingSafety game = (if wKingDefense == 3 then 2 else wKingDefense) - (if bKingDef
           rightBPawn (x,y) = if (getPiece game (x+1,y-1)) == Maybe ((x+1,y-1), (Pawn, Black)) then 1 else 0
           bKingDefense = leftBPawn (getPosition bKing) + middleBPawn (getPosition bKing) + rightBPawn (getPosition bKing)-}
 
-
-
-
-
-bestMove :: Game -> Move--will need helper functions, as well as a way to determine which team it's making a move for. whoWillWin may be helpful.
-bestMove game = undefined
 
 -- Format: currentTeam(b|w) [space] turnCounter [space] list of pieces((b|w)(p|q|k|r|b|n)(a..h)(1..8)) separated by commas
 -- Example for Initial Game: w\n100\nwra1 wnb1 wbc1 wqd1 wke1 wbf1 wng1 wrh1 

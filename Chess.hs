@@ -152,9 +152,9 @@ canMake game@(turn,_,_) piece@((x1, y1), (Queen, team)) (x2, y2) =
 canMake game@(turn,pieces,turns) piece@((x1, y1), (King, team)) (x2, y2) =
     turn == team && inBounds (x2, y2) &&
     abs (x2 - x1) <= 1 && abs (y2 - y1) <= 1 &&  -- one-square in any direction
-    canCapture game (x2, y2) piece &&
-    null [op | op <- getTeamPieces game (oppositeTeam team), canMake newGame op (x2,y2)]--prevents king from moving into check
-      where newGame = (oppositeTeam turn,pieces,turns-1)
+    canCapture game (x2, y2) piece 
+    -- null [op | op <- getTeamPieces game (oppositeTeam team), canMake newGame op (x2,y2)]--prevents king from moving into check
+    --   where newGame = (oppositeTeam turn,pieces,turns-1)
 
 -- takes a game, position, and piece and checks whether the position is currently occupied 
     -- if the piece is the same color -> return false  
@@ -196,19 +196,16 @@ possibleGameMoves game@(team,pieces,_) =
   in concat [possibleMoves game p | p <- teamPieces]
     where whites = getTeamPieces game White
           blacks = getTeamPieces game Black
-          
 
 winner :: Game -> Maybe Winner
-winner game@(turn,pieces,count) = --should somehow account for stalemates - king&knight vs king, king&bishop vs king,king&bishop vs king&bishop where bishops are on the same color,king&knight&knight vs king can checkmate but cannot force checkmate - accept user input for forfeit to solve this?
-  if count<1 
-    then Just Stalemate 
-    else case teamKings of
-      ([],_) -> Just (Victor Black)
-      (_,[]) -> Just (Victor White)
-      ((w:_),(b:_)) -> if (null (possibleMoves game w)&&(turn==White))||
-                          (null (possibleMoves game b)&&(turn==Black)) then Just Stalemate else Nothing
-   where kings = [piece | piece <- pieces,(getPieceType piece)==King]
-         teamKings = ([king | king <- kings,getPieceTeam king == White],[king | king <- kings,getPieceTeam king == Black])
+winner game@(turn,pieces,count) 
+    | count < 1 = Just Stalemate
+    | null [whiteKing | whiteKing@(_, (_, White)) <- kings] = Just $ Victor Black
+    | null [blackKing | blackKing@(_, (_, Black)) <- kings] = Just $ Victor White
+    | null validMoves = Just Stalemate
+    | otherwise = Nothing
+    where validMoves = possibleGameMoves game
+          kings = [king | king@(_, (King, _)) <- pieces] 
 
 pieceToString :: (PieceType, Team) -> String
 pieceToString (Pawn, Black)   = "♙"
