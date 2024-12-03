@@ -79,6 +79,7 @@ testCanMake = assess "canMake" 0 $ do
         check "that a pawn can move one space again" $ canMake pawnGame2 ((1, 3), (Pawn, White)) (1,4) `shouldBe` True
         check "that a pawn can't move two spaces normally" $ canMake pawnGame1 ((1, 3), (Pawn, White)) (1,5) `shouldBe` False
         check "that a pawn can't move through another piece" $ canMake (White,[((1, 3), (Pawn, White)),((1, 4), (Pawn, Black))],50) ((1, 3), (Pawn, White)) (1,4) `shouldBe` False
+        check "that a king can't move into check" $ canMake kingGame1 ((2,1),(King,White)) (1,1) `shouldBe` False
         check "that a king can't move initially" $ canMake initialGame ((5, 1), (King, White)) (5,2) `shouldBe` False
         check "that a king can't move out of bounds" $ canMake initialGame ((5, 1), (King, White)) (5,2) `shouldBe` False
         check "that Black can't move on the first turn" $ canMake initialGame ((1, 7), (Pawn, Black)) (1,6) `shouldBe` False
@@ -102,8 +103,8 @@ testWinner = assess "winner" 0 $ do
 
 testWhoWillWin :: Grader String
 testWhoWillWin = assess "whoWillWin" 0 $ do
-        check "that the winner will win" $ whoWillWin win1 `shouldBe` Victor White
-        check "that there will be no winner when time runs out" $ whoWillWin timeOut `shouldBe` Stalemate
+        check "that the winner will win" $ whoWillWin win1 3 `shouldBe` Just (Victor White)
+        check "that there will be no winner when time runs out" $ whoWillWin timeOut 3 `shouldBe` Just Stalemate
 
 testReadShowGame :: Grader String
 testReadShowGame = assess "readGame & showGame" 0 $ do

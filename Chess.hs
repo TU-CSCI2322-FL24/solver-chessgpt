@@ -152,9 +152,9 @@ canMake game@(turn,_,_) piece@((x1, y1), (Queen, team)) (x2, y2) =
 canMake game@(turn,pieces,turns) piece@((x1, y1), (King, team)) (x2, y2) =
     turn == team && inBounds (x2, y2) &&
     abs (x2 - x1) <= 1 && abs (y2 - y1) <= 1 &&  -- one-square in any direction
-    canCapture game (x2, y2) piece 
-    -- null [op | op <- getTeamPieces game (oppositeTeam team), canMake newGame op (x2,y2)]--prevents king from moving into check
-    --   where newGame = (oppositeTeam turn,pieces,turns-1)
+    canCapture game (x2, y2) piece && 
+    null [op | op <- getTeamPieces game (oppositeTeam team), canMake newGame op (x2,y2)]--prevents king from moving into check
+       where newGame = (oppositeTeam turn,pieces,turns-1)
 
 -- takes a game, position, and piece and checks whether the position is currently occupied 
     -- if the piece is the same color -> return false  

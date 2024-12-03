@@ -11,9 +11,7 @@ whoWillWin :: Game -> Int -> Maybe Winner
 whoWillWin _ 0 = Nothing
 whoWillWin game@(team, pieces, count) limit = 
     case winner game of
-        Just (Victor Black) ->  Just $ Victor Black 
-        Just (Victor White) ->  Just $ Victor White 
-        Just Stalemate      ->  Just Stalemate
+        Just w -> Just w
         Nothing ->  if Just (Victor team) `elem` outcomes then Just (Victor team)
                     else if Just Stalemate `elem` outcomes then Just Stalemate
                     else if Just (Victor (oppositeTeam team)) `elem` outcomes then Just (Victor (oppositeTeam team))
