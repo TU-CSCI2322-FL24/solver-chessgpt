@@ -11,6 +11,7 @@ import Test.Grader.Rubric
 import Control.Monad.Extra
 import Control.Monad.Trans.RWS
 import System.IO.Unsafe
+import Data.Maybe
 
 --add new Grader String functions for each assess statement
 testGetPiece :: Grader String
@@ -30,32 +31,32 @@ testReplacePiece = assess "replacePiece" 0 $ do
 
 testMove :: Grader String
 testMove = assess "move" 0 $ do
-        check "that move can move a pawn one space" $ getPiece (getGame $ move initialGame (Move ((1, 2), (Pawn, White)) (1,3))) (1,3) `shouldBe` Just (Pawn,White)
-        check "that move can move a pawn two spaces initially" $ getPiece (getGame $ move initialGame (Move ((1, 2), (Pawn, White)) (1,4))) (1,4) `shouldBe` Just (Pawn,White)
-        check "that move can move a pawn one space again" $ getPiece (getGame $ move pawnGame2 (Move ((1, 3), (Pawn, White)) (1,4))) (1,4) `shouldBe` Just (Pawn,White)
+        check "that move can move a pawn one space" $ getPiece (fromJust $ move initialGame (Move ((1, 2), (Pawn, White)) (1,3))) (1,3) `shouldBe` Just (Pawn,White)
+        check "that move can move a pawn two spaces initially" $ getPiece (fromJust $ move initialGame (Move ((1, 2), (Pawn, White)) (1,4))) (1,4) `shouldBe` Just (Pawn,White)
+        check "that move can move a pawn one space again" $ getPiece (fromJust $ move pawnGame2 (Move ((1, 3), (Pawn, White)) (1,4))) (1,4) `shouldBe` Just (Pawn,White)
         check "that move can't move a pawn two spaces again" $ move pawnGame2 (Move ((1, 3), (Pawn, White)) (1,5)) `shouldBe` Nothing
         check "that a pawn can't move through another piece" $ move (White,[((1, 3), (Pawn, White)),((1, 4), (Pawn, Black))],50) (Move ((1, 3), (Pawn, White)) (1,4)) `shouldBe` Nothing
         check "that a pawn can take a piece" $ pawnPieces `shouldNotContain` ((1,8),(Pawn,Black))
         check "that a black pawn can take a piece" $ bpawnPieces `shouldNotContain` ((2,7),(Pawn,White))
-        check "that a rook can move vertically" $ getPiece (getGame $ move rookGame1 (Move ((2,7),(Rook,White)) (2,1))) (2,1) `shouldBe` Just (Rook,White)
-        check "that a rook can move horizontally" $ getPiece (getGame $ move rookGame1 (Move ((2,7),(Rook,White)) (8,7))) (8,7) `shouldBe` Just (Rook,White)
+        check "that a rook can move vertically" $ getPiece (fromJust $ move rookGame1 (Move ((2,7),(Rook,White)) (2,1))) (2,1) `shouldBe` Just (Rook,White)
+        check "that a rook can move horizontally" $ getPiece (fromJust $ move rookGame1 (Move ((2,7),(Rook,White)) (8,7))) (8,7) `shouldBe` Just (Rook,White)
         check "that a rook can't move diagonally" $ move rookGame1 (Move ((2,7),(Rook,White)) (1,8)) `shouldBe` Nothing
         check "that a rook can take a piece" $ rookPieces `shouldNotContain` ((1,7),(Rook,Black))
-        check "that a knight can move over pieces" $ getPiece (getGame $ move initialGame (Move ((2,1),(Knight,White)) (3,3))) (3,3) `shouldBe` Just (Knight,White)
+        check "that a knight can move over pieces" $ getPiece (fromJust $ move initialGame (Move ((2,1),(Knight,White)) (3,3))) (3,3) `shouldBe` Just (Knight,White)
         check "that the knight's bloody stupid moveset doesn't let it do nonsense" $ move initialGame (Move ((2,1),(Knight,White)) (8,3)) `shouldBe` Nothing
         check "that a knight can take a piece" $ knightPieces `shouldNotContain` ((1,8),(Knight,Black))
-        check "that a bishop can move diagonally" $ getPiece (getGame $ move bishopGame1 (Move ((1,8),(Bishop,White)) (7,2))) (7,2) `shouldBe` Just (Bishop,White)
+        check "that a bishop can move diagonally" $ getPiece (fromJust $ move bishopGame1 (Move ((1,8),(Bishop,White)) (7,2))) (7,2) `shouldBe` Just (Bishop,White)
         check "that a bishop can't move horizontally" $ move bishopGame1 (Move ((1,8),(Bishop,White)) (7,8)) `shouldBe` Nothing
         check "that a bishop can't move vertically" $ move bishopGame1 (Move ((1,8),(Bishop,White)) (1,2)) `shouldBe` Nothing
         check "that a bishop can't move through a piece" $ move bishopGame2 (Move ((1,8),(Bishop,White)) (7,2)) `shouldBe` Nothing
         check "that a bishop can take a piece" $ bishopPieces `shouldNotContain` ((2,7),(Bishop,Black))
-        check "that a queen can move vertically" $ getPiece (getGame $ move queenGame1 (Move ((2,7),(Queen,White)) (2,1))) (2,1) `shouldBe` Just (Queen,White)
-        check "that a queen can move horizontally" $ getPiece (getGame $ move queenGame1 (Move ((2,7),(Queen,White)) (8,7))) (8,7) `shouldBe` Just (Queen,White)
-        check "that a queen can move diagonally" $ getPiece (getGame $ move queenGame1 (Move ((2,7),(Queen,White)) (7,2))) (7,2) `shouldBe` Just (Queen,White)
+        check "that a queen can move vertically" $ getPiece (fromJust $ move queenGame1 (Move ((2,7),(Queen,White)) (2,1))) (2,1) `shouldBe` Just (Queen,White)
+        check "that a queen can move horizontally" $ getPiece (fromJust $ move queenGame1 (Move ((2,7),(Queen,White)) (8,7))) (8,7) `shouldBe` Just (Queen,White)
+        check "that a queen can move diagonally" $ getPiece (fromJust $ move queenGame1 (Move ((2,7),(Queen,White)) (7,2))) (7,2) `shouldBe` Just (Queen,White)
         check "that a queen can't move elsewhere" $ move queenGame1 (Move ((2,7),(Queen,White)) (7,5)) `shouldBe` Nothing
         check "that a queen can't move through a piece" $ move initialGame (Move ((4,1),(Queen,White)) (4,2)) `shouldBe` Nothing
         check "that a queen can take a piece" $ queenPieces `shouldNotContain` ((1,7),(Rook,Black))
-        check "that a king can move" $ getPiece (getGame $ move rookGame1 (Move ((1,1),(King,White)) (2,2))) (2,2) `shouldBe` Just (King,White)
+        check "that a king can move" $ getPiece (fromJust $ move rookGame1 (Move ((1,1),(King,White)) (2,2))) (2,2) `shouldBe` Just (King,White)
         check "that a king can't move two spaces" $ move rookGame1 (Move ((1,1),(King,White)) (3,2)) `shouldBe` Nothing
         check "that a king can't move into check" $ move kingGame1 (Move ((2,1),(King,White)) (1,1)) `shouldBe` Nothing--do we want this?
         check "that a king can't move through a piece" $ move initialGame (Move ((5, 1), (King, White)) (5,2)) `shouldBe` Nothing
@@ -63,13 +64,13 @@ testMove = assess "move" 0 $ do
         check "that a king can't move out of bounds" $ move initialGame (Move ((5, 1), (King, White)) (5,0)) `shouldBe` Nothing
         check "that Black can't move on the first turn" $ move initialGame (Move ((1, 7), (Pawn, Black)) (1,6)) `shouldBe` Nothing
         check "that White can't move on the second turn" $ move pawnGame1 (Move ((1,3),(Pawn,White)) (1,4)) `shouldBe` Nothing
-    where (_,pawnPieces,_)   = getGame $ move pawnGame3 (Move ((2,7),(Pawn,White)) (1,8))
-          (_,bpawnPieces,_)  = getGame $ move pawnGame4 (Move ((1,8),(Pawn,Black)) (2,7))
-          (_,bishopPieces,_) = getGame $ move bishopGame3 (Move ((1,8),(Bishop,White)) (2,7))
-          (_,knightPieces,_) = getGame $ move knightGame1 (Move ((3,7),(Knight,White)) (1,8))
-          (_,rookPieces,_)   = getGame $ move rookGame1 (Move ((2,7),(Rook,White)) (1,7))
-          (_,queenPieces,_)  = getGame $ move queenGame1 (Move ((2,7),(Queen,White)) (1,7))
-          (_,kingPieces,_)   = getGame $ move kingGame1 (Move ((2,1),(King,White)) (1,2))
+    where (_,pawnPieces,_)   = fromJust $ move pawnGame3 (Move ((2,7),(Pawn,White)) (1,8))
+          (_,bpawnPieces,_)  = fromJust $ move pawnGame4 (Move ((1,8),(Pawn,Black)) (2,7))
+          (_,bishopPieces,_) = fromJust $ move bishopGame3 (Move ((1,8),(Bishop,White)) (2,7))
+          (_,knightPieces,_) = fromJust $ move knightGame1 (Move ((3,7),(Knight,White)) (1,8))
+          (_,rookPieces,_)   = fromJust $ move rookGame1 (Move ((2,7),(Rook,White)) (1,7))
+          (_,queenPieces,_)  = fromJust $ move queenGame1 (Move ((2,7),(Queen,White)) (1,7))
+          (_,kingPieces,_)   = fromJust $ move kingGame1 (Move ((2,1),(King,White)) (1,2))
 
 testCanMake :: Grader String
 testCanMake = assess "canMake" 0 $ do

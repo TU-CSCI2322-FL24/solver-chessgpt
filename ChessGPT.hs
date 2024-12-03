@@ -59,6 +59,11 @@ parsePieceType str = do
         _ -> Nothing
     return pieceType
 
+parseTeam :: String -> Maybe Team
+parseTeam str = do
+    team <- if str == "w" then Just White else if str == "b" then Just Black else Nothing
+    return team
+
 showPiece :: (PieceType,Team) -> String
 showPiece (Pawn,White)  = "wp"
 showPiece (Pawn,Black)  = "bp"
@@ -88,11 +93,6 @@ showGame game@(turn, pieces, turns) = init $ unlines [showTurn turn, show turns,
   where showTurn :: Team -> String
         showTurn White = "w"
         showTurn Black = "b"
-
-parseTeam :: String -> Maybe Team
-parseTeam str = do
-    team <- if str == "w" then Just White else if str == "b" then Just Black else Nothing
-    return team
 
 writeGame :: Game -> FilePath -> IO ()
 writeGame game path = undefined
