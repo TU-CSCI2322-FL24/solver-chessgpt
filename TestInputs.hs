@@ -1,11 +1,7 @@
 module TestInputs where
 import Chess
 import ChessGPT
-
---should ONLY be used when we intend for a game to be generated
-getGame :: Maybe Game -> Game
-getGame (Just game) = game
-getGame Nothing = error "no game no life"
+import Data.Maybe
 
 initialGame :: Game-- Written with the help of ChatGPT
 initialGame = (White, whitePieces++blackPieces,100)--may need to change turn count
@@ -35,10 +31,10 @@ whiteMateTwo :: String
 whiteMateTwo = "w\n20\nwka1 wqh5 wrb8 bkh7 bph6 bng6 bpg7"
 
 pawnGame1 :: Game
-pawnGame1 = getGame $ move initialGame (Move ((1, 2), (Pawn, White)) (1,3))
+pawnGame1 = fromJust $ move initialGame (Move ((1, 2), (Pawn, White)) (1,3))
 
 pawnGame2 :: Game
-pawnGame2 = getGame $ move pawnGame1 (Move ((1, 7), (Pawn, Black)) (1,6))
+pawnGame2 = fromJust $ move pawnGame1 (Move ((1, 7), (Pawn, Black)) (1,6))
 
 pawnGame3 :: Game
 pawnGame3 = (White,[((1,1),(King,White)),((2,7),(Pawn,White)),((8,8),(King,Black)),((1,8),(Pawn,Black))],50)
