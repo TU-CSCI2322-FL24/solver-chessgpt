@@ -182,8 +182,8 @@ possibleMoves game piece@((x,y),(Knight, team)) =
   [Move piece move | move <- moves,canMake game piece move]
     where moves = [(x+2,y+1),(x+1,y+2),(x+2,y-1),(x-1,y+2),(x-2,y+1),(x+1,y-2),(x-1,y-2),(x-2,y-1)]
 possibleMoves game piece@((x, y), (Bishop, team))    = 
-  [Move piece move | move <- moves,canMake game piece move]--ensures moves are in bounds
-    where moves = [(x+1,y+1),(x+2,y+2),(x+3,y+3),(x+4,y+4),(x+5,y+5),(x+6,y+6),(x+7,y+7),(x+8,y+8),(x-1,y-1),(x-2,y-2),(x-3,y-3),(x-4,y-4),(x-5,y-5),(x-6,y-6),(x-7,y-7),(x-8,y-8)]
+  [Move piece move | move <- moves,canMake game piece move]
+    where moves = [ (x + i, y + i) | i <- [1..8], inBounds (x + i, y + i) ] ++ [ (x - i, y - i) | i <- [1..8], inBounds (x - i, y - i) ] ++ [ (x - i, y + i) | i <- [1..8], inBounds (x - i, y + i) ] ++ [ (x + i, y - i) | i <- [1..8], inBounds (x + i, y - i) ] --efficiency helped with chatgpt
 possibleMoves game ((x,y), (Queen, team))        = 
   (possibleMoves game (((x,y), (Rook, team)))) ++ (possibleMoves game ((x,y), (Bishop,team)))
 possibleMoves game piece@((x,y), (King, team))   = 
