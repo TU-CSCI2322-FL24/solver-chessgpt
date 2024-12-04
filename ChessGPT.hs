@@ -7,20 +7,27 @@ type Rating = Int
 
 -- Games passed to whoWillWin should have a forced checkmate on the board of no more than mate in 3
 -- use limit to prevent stack overflow error, ensure that limit is greater than the number of moves for checkmate
-whoWillWin :: Game -> Int -> Maybe Winner
-whoWillWin _ 0 = Nothing
-whoWillWin game@(team, pieces, count) limit = 
-    case winner game of
-        Just w -> Just w
-        Nothing ->  if Just (Victor team) `elem` outcomes then Just (Victor team)
-                    else if Just Stalemate `elem` outcomes then Just Stalemate
-                    else if Just (Victor (oppositeTeam team)) `elem` outcomes then Just (Victor (oppositeTeam team))
-                    else Nothing
-            where validMoves = possibleGameMoves game
-                  outcomes = [whoWillWin nextGame (limit - 1) | nextMove <- validMoves, Just nextGame <- [move (team, pieces, count - 1) nextMove]]
+whoWillWin :: Game -> Maybe Winner
+whoWillWin game = aux game 4
+    where   
+        aux _ 0 = Nothing
+        aux game@(team, pieces, count) limit = 
+            case winner game of
+                Just w -> Just w
+                Nothing ->  if Just (Victor team) `elem` outcomes then Just (Victor team)
+                            else if Just Stalemate `elem` outcomes then Just Stalemate
+                            else if Just (Victor (oppositeTeam team)) `elem` outcomes then Just (Victor (oppositeTeam team))
+                            else Nothing
+                    where validMoves = possibleGameMoves game
+                          outcomes = [aux nextGame (limit - 1) | nextMove <- validMoves, Just nextGame <- [move (team, pieces, count - 1) nextMove]]
 
 bestMove :: Game -> Move
-bestMove game@(team, pieces, count) = undefined
+bestMove game@(team, pieces, count) = if not $ null winnings then head winnings else if not $ null ties then head ties else head allMoves
+    where outputs = [(whoWillWin newGame, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]        
+          winnings = [theMove | (winner, theMove) <- outputs, winner == Just (Victor team)]
+          ties = [theMove | (winner, theMove) <- outputs, winner == Just Stalemate]
+          allMoves = [theMove | (_, theMove) <- outputs]
+
 
 whoMightWin :: Game -> Int -> (Rating, Move)
 whoMightWin game depth = undefined 
