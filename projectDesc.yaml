@@ -1,0 +1,7 @@
+#this is fine, no touchy
+srcFile : ChessGPT.hs
+exeFile : chessGPT
+
+builtIns: []
+
+borings: []
