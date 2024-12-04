@@ -115,7 +115,8 @@ isEmpty game loc = isNothing $ getPiece game loc
 -- checks that the destination position is not currently occupied by a piece of the same color 
     -- if the destination is occupied by an opposite colored piece, returns true
 canMake :: Game -> Piece -> Position -> Bool
-canMake game@(turn,_,_) ((x1, y1), (Pawn, White)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Pawn, White)) (x2, y2) =
+    piece `elem` pieces &&
     turn==White && inBounds (x2, y2) &&
     (x2 == x1 && y2 == y1 + 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
     (x2 == x1 && y1 == 2 && y2 == 4 && isNothing (getPiece game (x2, 3)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
@@ -123,7 +124,8 @@ canMake game@(turn,_,_) ((x1, y1), (Pawn, White)) (x2, y2) =
     case getPiece game (x2, y2) of -- diagonal capture
         Just (_,team) -> team == Black
         Nothing     -> False)
-canMake game@(turn,_,_) ((x1, y1), (Pawn, Black)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Pawn, Black)) (x2, y2) =
+    piece `elem` pieces &&
     turn == Black && inBounds (x2, y2) &&
     (x2 == x1 && y2 == y1 - 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
     (x2 == x1 && y1 == 7 && y2 == 5 && isNothing (getPiece game (x2, 6)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
@@ -131,25 +133,30 @@ canMake game@(turn,_,_) ((x1, y1), (Pawn, Black)) (x2, y2) =
     case getPiece game (x2, y2) of -- diagonal capture
         Just (_,team) -> team == White
         Nothing     -> False)
-canMake game@(turn,_,_) piece@((x1, y1), (Rook, team)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Rook, team)) (x2, y2) =
+    piece `elem` pieces &&
     turn == team && inBounds (x2, y2) &&
     ((x2 == x1 || y2 == y1) && pathClear game (x1, y1) (x2, y2)) &&  -- clear row/column
     canCapture game (x2, y2) piece
-canMake game@(turn,_,_) piece@((x1, y1), (Knight, team)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Knight, team)) (x2, y2) =
+    piece `elem` pieces &&
     turn == team && inBounds (x2, y2) &&
     ((abs (x2 - x1), abs (y2 - y1)) `elem` [(2, 1), (1, 2)]) &&
     canCapture game (x2, y2) piece
-canMake game@(turn,_,_) piece@((x1, y1), (Bishop, team)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Bishop, team)) (x2, y2) =
+    piece `elem` pieces &&
     turn == team && inBounds (x2, y2) &&
     abs (x2 - x1) == abs (y2 - y1) &&  -- diagonal check
     pathClear game (x1, y1) (x2, y2) &&
     canCapture game (x2, y2) piece
-canMake game@(turn,_,_) piece@((x1, y1), (Queen, team)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Queen, team)) (x2, y2) =
+    piece `elem` pieces &&
     turn == team && inBounds (x2, y2) &&
     ((x2 == x1 || y2 == y1) && pathClear game (x1, y1) (x2, y2) ||  -- rook-like move
      abs (x2 - x1) == abs (y2 - y1) && pathClear game (x1, y1) (x2, y2)) &&  -- bishop-like move
     canCapture game (x2, y2) piece
 canMake game@(turn,pieces,turns) piece@((x1, y1), (King, team)) (x2, y2) =
+    piece `elem` pieces &&
     turn == team && inBounds (x2, y2) &&
     abs (x2 - x1) <= 1 && abs (y2 - y1) <= 1 &&  -- one-square in any direction
     canCapture game (x2, y2) piece && 
