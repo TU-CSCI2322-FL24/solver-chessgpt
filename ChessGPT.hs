@@ -1,38 +1,95 @@
 module ChessGPT where
 import Chess
-import Data.Maybe
 import Text.Read
-import Data.List.Split
---Fogarty said these functions weren't necessary in chess.hs, but that they might be part of whoWillWin
-{-danger :: Game -> Position -> Team -> Bool
-danger game pos team = not $ null [op | op <- getTeamPieces game (oppositeTeam team), canMake game op pos]
-safeMoves :: Game -> Piece -> [Move]
-safeMoves game piece = [move | move@(Move old new) <- (possibleMoves game piece), not $ danger game new (getPieceTeam piece)]
-check :: Game -> Piece -> Bool
-check game piece@(pos, (King, team)) = danger game pos team
-check game _ = False
-checkmate :: Game -> Team -> Bool
-checkmate game team = (check game king) && (null $ possibleMoves game king)
-  where king = getKing game team-}
-whoWillWin :: Game -> Winner--maybe use point system?https://www.chess.com/terms/chess-piece-value
-whoWillWin game = 
-    case winner game of
-        Just winner -> winner
-        Nothing -> undefined
+import Data.Maybe
 
-bestMove :: Game -> Move--will need helper functions, as well as a way to determine which team it's making a move for. whoWillWin may be helpful.
-bestMove game = undefined
+type Rating = Int
+
+-- Games passed to whoWillWin should have a forced checkmate on the board of no more than mate in 3
+-- use limit to prevent stack overflow error, ensure that limit is greater than the number of moves for checkmate
+whoWillWin :: Game -> Int -> Maybe Winner
+whoWillWin _ 0 = Nothing
+whoWillWin game@(team, pieces, count) limit = 
+    case winner game of
+        Just w -> Just w
+        Nothing ->  if Just (Victor team) `elem` outcomes then Just (Victor team)
+                    else if Just Stalemate `elem` outcomes then Just Stalemate
+                    else if Just (Victor (oppositeTeam team)) `elem` outcomes then Just (Victor (oppositeTeam team))
+                    else Nothing
+            where validMoves = possibleGameMoves game
+                  outcomes = [whoWillWin nextGame (limit - 1) | nextMove <- validMoves, Just nextGame <- [move (team, pieces, count - 1) nextMove]]
+
+bestMove :: Game -> Move
+bestMove game@(team, pieces, count) = undefined
+
+whoMightWin :: Game -> Int -> (Rating, Move)
+whoMightWin game depth = undefined 
+
+rateGame :: Game -> Rating
+rateGame (_,pieces,_) = wMaterial - bMaterial
+    where wMaterial = sum [pieceValue pType | (_, (pType, team)) <- pieces, team == White]
+          bMaterial = sum [pieceValue pType | (_, (pType, team)) <- pieces, team == Black]
+
+pieceValue :: PieceType -> Int
+pieceValue pType = if pType == Pawn then 1 
+                   else if pType == Rook then 5
+                   else if pType == Knight then 3
+                   else if pType == Bishop then 3
+                   else if pType == Queen then 9
+                   else 1000
+
+{-spaceControlled :: Game -> Int
+spaceControlled (_,pieces,int) = (length (possibleGameMoves (White,pieces,int))) - (length (possibleGameMoves (Black,pieces,int)))--int is useless here?-}
+
+{-pawnStructure :: Game -> Int
+pawnStructure game = wStructure - bStructure
+    where (_,pieces,_) = game
+          wPawns = [(pos, (pType, team)) | (pos, (pType, team)) <- pieces, pType == Pawn, team == White]
+          bPawns = [(pos, (pType, team)) | (pos, (pType, team)) <- pieces, pType == Pawn, team == Black]
+
+          leftWPawn (x,y) = (getPiece game (x-1,y+1)) == Maybe ((x-1,y+1), (Pawn, White))
+          rightWPawn (x,y) = (getPiece game (x+1,y+1)) == Maybe ((x+1,y+1), (Pawn, White))
+          wHelper (x,y) = if leftWPawn (x,y) && rightWPawn (x,y) then 2 else if leftWPawn (x,y) || rightWPawn (x,y) then 1 else 0
+          wStructure = sum [bHelper(x,y) | ((x,y), (_,_)) <- wPawns]
+
+          leftBPawn (x,y) = (getPiece game (x-1,y-1)) == Maybe ((x-1,y-1), (Pawn, Black))
+          rightBPawn (x,y) = (getPiece game (x+1,y-1)) == Maybe ((x+1,y-1), (Pawn, Black))
+          bHelper (x,y) = if leftBPawn (x,y) && rightBPawn (x,y) then 2 else if leftBPawn (x,y) || rightBPawn (x,y) then 1 else 0
+          bStructure = sum [bHelper(x,y) | ((x,y), (_,_)) <- bPawns]-}
+          
+
+{-adjacentTeamPieces :: Game -> Piece -> [Pieces]
+adjacentTeamPieces game piece = if getPieceTeam piece == white then length [pos | pos <- adjacentPositions, (getPiece game pos) /= null]--need to only check for one team somehow
+                                else 
+                where (pieceX,pieceY) = getPosition piece
+                      adjacentPositions = [(pieceX-1, pieceY+1),(pieceX, pieceY+1),(pieceX+1, pieceY+1),(pieceX-1, pieceY)
+                                       ,(pieceX+1, pieceY),(pieceX-1, pieceY-1),(pieceX, pieceY-1),(pieceX+1, pieceY-1)]-}
+
+{-kingSafety :: Game -> Int--at least 2 pawns in front of king
+kingSafety game = (if wKingDefense == 3 then 2 else wKingDefense) - (if bKingDefense == 3 then 2 else bKingDefense)
+    where (_,pieces,_) = game
+          wKing = [(pos, (pType, team)) | (pos, (pType, team)) <- pieces, pType == King, team == White]
+          bKing = [(pos, (pType, team)) | (pos, (pType, team)) <- pieces, pType == King, team == Black]
+          leftWPawn (x,y) = if (getPiece game (x-1,y+1)) == Maybe ((x-1,y+1), (Pawn, White)) then 1 else 0
+          middleWPawn (x,y) = if (getPiece game (x,y+1)) == Maybe ((x,y+1), (Pawn, White)) then 1 else 0
+          rightWPawn (x,y) = if (getPiece game (x+1,y+1)) == Maybe ((x+1,y+1), (Pawn, White)) then 1 else 0
+          wKingDefense = leftWPawn (getPosition wKing) + middleWPawn (getPosition wKing) + rightWPawn (getPosition wKing)
+          leftBPawn (x,y) = if (getPiece game (x-1,y-1)) == Maybe ((x-1,y-1), (Pawn, Black)) then 1 else 0
+          middleBPawn (x,y) = if (getPiece game (x,y-1)) == Maybe ((x,y-1), (Pawn, Black)) then 1 else 0
+          rightBPawn (x,y) = if (getPiece game (x+1,y-1)) == Maybe ((x+1,y-1), (Pawn, Black)) then 1 else 0
+          bKingDefense = leftBPawn (getPosition bKing) + middleBPawn (getPosition bKing) + rightBPawn (getPosition bKing)-}
+
 
 -- Format: currentTeam(b|w) [space] turnCounter [space] list of pieces((b|w)(p|q|k|r|b|n)(a..h)(1..8)) separated by commas
--- Example for Initial Game: w 0 wra1,wnb1,wnc1,wbf1,wqc1,wrh1,wkc1,wpa2,wpb2,wpc2,wpd2,wpe2,wpf2,wpg2,wph2,
--- bra8,bnb8,bnc8,bnf8,bqc8,brh8,bkc8,bpa7,bpb7,bpc7,bpd7,bpe7,bpf7,bpg7,bph7
+-- Example for Initial Game: w\n100\nwra1 wnb1 wbc1 wqd1 wke1 wbf1 wng1 wrh1 
+-- wpa2 wpb2 wpc2 wpd2 wpe2 wpf2 wpg2 wph2 bra8 bnb8 bbc8 bqd8 bke8 bbf8 bng8 brh8 bpa7 bpb7 bpc7 bpd7 bpe7 bpf7 bpg7 bph7
 readGame :: String -> Maybe Game
 readGame str = do
-    (teamStr, counterStr, piecesStr) <- case words str of 
+    (teamStr, counterStr, piecesStr) <- case lines str of 
         (teamStr:counterStr:piecesStr:_) -> Just (teamStr, counterStr, piecesStr)
         _ -> Nothing
     team <- parseTeam teamStr
-    pieces <- sequence [parsePiece pieceStr | pieceStr <- splitOn "," piecesStr]
+    pieces <- sequence [parsePiece pieceStr | pieceStr <- words piecesStr]
     counter <- readMaybe counterStr
     return (team, pieces, counter)
 
@@ -59,32 +116,48 @@ parsePieceType str = do
         _ -> Nothing
     return pieceType
 
-showPiece :: Maybe (PieceType,Team) -> Char
-showPiece (Just (Pawn,_))   = 'p'
-showPiece (Just (Rook,_))   = 'r'
-showPiece (Just (Knight,_)) = 'n'
-showPiece (Just (Bishop,_)) = 'b'
-showPiece (Just (King,_))   = 'k'
-showPiece (Just (Queen,_))  = 'q'
-showPiece Nothing       = ' '
-
-showGame :: Game -> String
-showGame game = unlines [rowString y game | y <- [8,7..1]]
-  where rowString :: Int -> Game -> String
-        rowString y game = [showPiece $ getPiece game (x,y) | x <- [1..8]]
-
 parseTeam :: String -> Maybe Team
 parseTeam str = do
     team <- if str == "w" then Just White else if str == "b" then Just Black else Nothing
     return team
 
+showPiece :: (PieceType,Team) -> String
+showPiece (Pawn,White)  = "wp"
+showPiece (Pawn,Black)  = "bp"
+showPiece (Rook,White)  = "wr"
+showPiece (Rook,Black)  = "br"
+showPiece (Knight,White) = "wn"
+showPiece (Knight,Black) = "bn"
+showPiece (Bishop,White) = "wb"
+showPiece (Bishop,Black) = "bb"
+showPiece (King,White)  = "wk"
+showPiece (King,Black)  = "bk"
+showPiece (Queen,White) = "wq"
+showPiece (Queen,Black) = "bq"
+
+showPos :: Position -> String
+showPos (1,y) = "a" ++ show y
+showPos (2,y) = "b" ++ show y
+showPos (3,y) = "c" ++ show y
+showPos (4,y) = "d" ++ show y
+showPos (5,y) = "e" ++ show y
+showPos (6,y) = "f" ++ show y
+showPos (7,y) = "g" ++ show y
+showPos (8,y) = "h" ++ show y
+
+showGame :: Game -> String
+showGame game@(turn, pieces, turns) = init $ unlines [showTurn turn, show turns, unwords [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]]
+  where showTurn :: Team -> String
+        showTurn White = "w"
+        showTurn Black = "b"
+
 writeGame :: Game -> FilePath -> IO ()
 writeGame game path = undefined
 
-loadGame :: FilePath -> IO Game 
+loadGame :: FilePath -> IO (Maybe Game)
 loadGame path = do
   str <- readFile path
-  return $ fromJust $ readGame str
+  return $ readGame str
 
 putBestMove :: Game -> IO ()
 putBestMove game = putStrLn $ show $ bestMove game
