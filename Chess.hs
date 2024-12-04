@@ -37,6 +37,11 @@ opposite game (_, (_, Black)) = getTeamPieces game White
 getPiece :: Game -> Position -> Maybe (PieceType, Team)
 getPiece (_,pieces,_) pos = lookup pos pieces
 
+danger :: Game -> Position -> Team -> Bool
+danger game pos team = 
+    any (\piece -> pos `elem` [new | Move _ new <- possibleMoves game piece]) 
+        (getTeamPieces game (oppositeTeam team)) --helped by chatgpt
+
 oppositeTeam :: Team -> Team
 oppositeTeam White = Black
 oppositeTeam Black = White
