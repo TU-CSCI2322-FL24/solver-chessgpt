@@ -2,8 +2,10 @@ module ChessGPT where
 import Chess
 import Text.Read
 import Data.Maybe
+import Data.List
+import Data.Ord
 
-type Rating = Int
+type Rating = Int 
 
 -- Games passed to whoWillWin should have a forced checkmate on the board of no more than mate in 3
 whoWillWin :: Game -> Maybe Winner
@@ -12,9 +14,9 @@ whoWillWin game = aux game 4
           aux game@(team, pieces, count) limit = 
             case winner game of
                 Just w -> Just w
-                Nothing ->  if Just (Victor team) `elem` outcomes then Just (Victor team)
-                            else if Just Stalemate `elem` outcomes then Just Stalemate
-                            else if Just (Victor (oppositeTeam team)) `elem` outcomes then Just (Victor (oppositeTeam team))
+                Nothing ->  if any (== Just (Victor team)) outcomes then Just (Victor team)
+                            else if all (== Just Stalemate) outcomes then Just Stalemate
+                            else if any (== Just (Victor (oppositeTeam team))) outcomes then Just (Victor (oppositeTeam team))
                             else Nothing
                     where validMoves = possibleGameMoves game
                           outcomes = [aux nextGame (limit - 1) | nextMove <- validMoves, Just nextGame <- [move (team, pieces, count - 1) nextMove]]
@@ -26,8 +28,15 @@ bestMove game@(team, pieces, count) = if not $ null winnings then head winnings 
           ties = [theMove | (winner, theMove) <- outputs, winner == Just Stalemate]
           allMoves = [theMove | (_, theMove) <- outputs]
 
-whoMightWin :: Game -> Int -> (Rating, Move)
-whoMightWin game depth = undefined 
+whoMightWin :: Game -> Int -> Rating
+whoMightWin game 0 = rateGame game 
+whoMightWin game@(team, _, _) depth = if team == White then maximum scores else minimum scores
+    where scores = [whoMightWin newGame (depth - 1) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
+
+-- Will call maximum on an empty list, need to fix that
+goodMove :: Game -> Int -> Move
+goodMove game@(team, pieces, count) depth = if team == White then snd (maximumBy (comparing fst) outputs) else snd (minimumBy (comparing fst) outputs)
+    where outputs = [(whoMightWin newGame depth, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
 
 rateGame :: Game -> Rating
 rateGame (_,pieces,_) = wMaterial - bMaterial

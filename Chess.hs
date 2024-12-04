@@ -179,21 +179,30 @@ promote ((x, 1), (Pawn, Black)) = ((x, 1), (Queen, Black))
 promote piece = piece
 
 possibleMoves :: Game -> Piece -> [Move]
-possibleMoves game piece@((x, y), (Pawn, team))   = 
+possibleMoves game piece@((x, y), (Pawn, team)) = 
   [Move piece move | move <- moves, canMake game piece move]
     where moves = [(x,y+1),(x,y+2),(x,y-1),(x,y-2)]
-possibleMoves game piece@((x, y), (Rook, team))   = 
+possibleMoves game piece@((x, y), (Rook, team)) = 
   [Move ((x, y), (Rook,team) ) (x, ys) | ys <- [1..8], canMake game piece (x,ys)] ++
   [Move ((x, y), (Rook,team) ) (xs, y) | xs <- [1..8], canMake game piece (xs,y)]
 possibleMoves game piece@((x,y), (Knight, team)) = 
   [Move piece move | move <- moves,canMake game piece move]
     where moves = [(x+2,y+1),(x+1,y+2),(x+2,y-1),(x-1,y+2),(x-2,y+1),(x+1,y-2),(x-1,y-2),(x-2,y-1)]
-possibleMoves game piece@((x, y), (Bishop, team))    = 
+possibleMoves game piece@((x, y), (Bishop, team)) = 
   [Move piece move | move <- moves,canMake game piece move]--ensures moves are in bounds
-    where moves = [(x+1,y+1),(x+2,y+2),(x+3,y+3),(x+4,y+4),(x+5,y+5),(x+6,y+6),(x+7,y+7),(x+8,y+8),(x-1,y-1),(x-2,y-2),(x-3,y-3),(x-4,y-4),(x-5,y-5),(x-6,y-6),(x-7,y-7),(x-8,y-8)]
-possibleMoves game ((x,y), (Queen, team))        = 
-  (possibleMoves game (((x,y), (Rook, team)))) ++ (possibleMoves game ((x,y), (Bishop,team)))
-possibleMoves game piece@((x,y), (King, team))   = 
+    where moves = [(x + n, y + n) | n <- [1..7]] ++ 
+                  [(x - n, y - n) | n <- [1..7]] ++
+                  [(x + n, y - n) | n <- [1..7]] ++ 
+                  [(x - n, y + n) | n <- [1..7]] 
+possibleMoves game piece@((x,y), (Queen, team)) = 
+  [Move piece move | move <- moves, canMake game piece move] ++ 
+  [Move ((x, y), (Queen,team) ) (x, ys) | ys <- [1..8], canMake game piece (x,ys)] ++
+  [Move ((x, y), (Queen,team) ) (xs, y) | xs <- [1..8], canMake game piece (xs,y)]
+    where moves = [(x + n, y + n) | n <- [1..7]] ++ 
+                  [(x - n, y - n) | n <- [1..7]] ++
+                  [(x + n, y - n) | n <- [1..7]] ++ 
+                  [(x - n, y + n) | n <- [1..7]]
+possibleMoves game piece@((x,y), (King, team)) = 
   [Move piece move | move <- moves, canMake game piece move]
     where moves = [(x,y+1),(x+1,y),(x,y-1),(x-1,y),(x+1,y+1),(x+1,y-1),(x-1,y-1),(x-1,y+1)]
 
