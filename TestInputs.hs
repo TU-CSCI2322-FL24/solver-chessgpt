@@ -3,7 +3,7 @@ import Chess
 import ChessGPT
 import Data.Maybe
 
-initialGame :: Game-- Written with the help of ChatGPT
+initialGame :: Game -- Written with the help of ChatGPT
 initialGame = (White, whitePieces++blackPieces,100)--may need to change turn count
   where
     whitePawns   = [((x, 2), (Pawn, White)) | x <- [1..8]]
@@ -29,6 +29,9 @@ blackMateTwo = fromJust $ readGame "b\n10\nbkb7 brb3 bqf4 wkg2"
 
 whiteMateTwo :: Game
 whiteMateTwo = fromJust $ readGame "w\n20\nwka1 wqh5 wrb8 bkh7 bph6 bng6 bpg7"
+
+whiteStaleMate :: Game
+whiteStaleMate = fromJust $ readGame "w\n20\nwkh4 wrc3 bkf5 bnf3 bqf1"
 
 pawnGame1 :: Game
 pawnGame1 = fromJust $ move initialGame (Move ((1, 2), (Pawn, White)) (1,3))
