@@ -21,6 +21,7 @@ whoWillWin game = aux game 4
                     where validMoves = possibleGameMoves game
                           outcomes = [aux nextGame (limit - 1) | nextMove <- validMoves, Just nextGame <- [move (team, pieces, count - 1) nextMove]]
 
+-- does not work 
 bestMove :: Game -> Move
 bestMove game@(team, pieces, count) = if not $ null winnings then head winnings else if not $ null ties then head ties else head allMoves
     where outputs = [(whoWillWin newGame, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]        
@@ -33,7 +34,7 @@ whoMightWin game 0 = rateGame game
 whoMightWin game@(team, _, _) depth = if team == White then maximum scores else minimum scores
     where scores = [whoMightWin newGame (depth - 1) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
 
--- Will call maximum on an empty list, need to fix that
+-- will call maximum on an empty list, need to fix that
 goodMove :: Game -> Int -> Move
 goodMove game@(team, pieces, count) depth = if team == White then snd (maximumBy (comparing fst) outputs) else snd (minimumBy (comparing fst) outputs)
     where outputs = [(whoMightWin newGame depth, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
