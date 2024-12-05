@@ -15,11 +15,11 @@ whoWillWin game = aux game 4
             case winner game of
                 Just w -> Just w
                 Nothing ->  if any (== Just (Victor team)) outcomes then Just (Victor team)
-                            else if all (== Just Stalemate) outcomes then Just Stalemate
+                            else if any (== Just Stalemate) outcomes then Just Stalemate
                             else if any (== Just (Victor (oppositeTeam team))) outcomes then Just (Victor (oppositeTeam team))
                             else Nothing
                     where validMoves = possibleGameMoves game
-                          outcomes = [aux nextGame (limit - 1) | nextMove <- validMoves, Just nextGame <- [move (team, pieces, count - 1) nextMove]]
+                          outcomes = [aux nextGame (limit - 1) | nextMove <- validMoves, let Just nextGame = move game nextMove]
 
 -- does not work 
 bestMove :: Game -> Move
@@ -31,10 +31,13 @@ bestMove game@(team, pieces, count) = if not $ null winnings then head winnings 
 
 whoMightWin :: Game -> Int -> Rating
 whoMightWin game 0 = rateGame game 
-whoMightWin game@(team, _, _) depth = if team == White then maximum scores else minimum scores
+whoMightWin game@(team, _, _) depth 
+    | team == White && null scores = 1000
+    | team == Black && null scores = -1000
+    | team == White = maximum scores
+    | otherwise = minimum scores
     where scores = [whoMightWin newGame (depth - 1) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
 
--- will call maximum on an empty list, need to fix that
 goodMove :: Game -> Int -> Move
 goodMove game@(team, pieces, count) depth = if team == White then snd (maximumBy (comparing fst) outputs) else snd (minimumBy (comparing fst) outputs)
     where outputs = [(whoMightWin newGame depth, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
