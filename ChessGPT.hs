@@ -9,7 +9,7 @@ type Rating = Int
 
 -- Games passed to whoWillWin should have a forced checkmate on the board of no more than mate in 3
 whoWillWin :: Game -> Maybe Winner
-whoWillWin game = aux game 4 
+whoWillWin game = aux game 2 
     where aux _ 0 = Nothing
           aux game@(team, pieces, count) limit = 
             case winner game of
@@ -26,7 +26,7 @@ bestMove :: Game -> Move
 bestMove game@(team, pieces, count) = if not $ null winnings then head winnings else if not $ null ties then head ties else head allMoves
     where outputs = [(whoWillWin newGame, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]        
           winnings = [theMove | (winner, theMove) <- outputs, winner == Just (Victor team)]
-          ties = [theMove | (winner, theMove) <- outputs, winner == Just Stalemate]
+          ties = [theMove | (winner, theMove) <- outputs, winner == Just Stalemate || winner == Nothing]
           allMoves = [theMove | (_, theMove) <- outputs]
 
 whoMightWin :: Game -> Int -> Rating
@@ -38,6 +38,7 @@ whoMightWin game@(team, _, _) depth
     | otherwise = minimum scores
     where scores = [whoMightWin newGame (depth - 1) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
 
+-- does not work
 goodMove :: Game -> Int -> Move
 goodMove game@(team, pieces, count) depth = if team == White then snd (maximumBy (comparing fst) outputs) else snd (minimumBy (comparing fst) outputs)
     where outputs = [(whoMightWin newGame depth, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
