@@ -146,13 +146,15 @@ showPos (7,y) = "g" ++ show y
 showPos (8,y) = "h" ++ show y
 
 showGame :: Game -> String
-showGame game@(turn, pieces, turns) = init $ unlines [showTurn turn, show turns, unwords [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]]
+showGame (turn, pieces, turns) = init $ unlines [showTurn turn, show turns, unwords [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]]
   where showTurn :: Team -> String
         showTurn White = "w"
         showTurn Black = "b"
 
 writeGame :: Game -> FilePath -> IO ()
-writeGame game path = undefined
+writeGame game path = do
+    writeFile path (showGame game)
+    return ()
 
 loadGame :: FilePath -> IO (Maybe Game)
 loadGame path = do
