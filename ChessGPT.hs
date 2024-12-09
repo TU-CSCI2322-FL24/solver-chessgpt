@@ -18,7 +18,7 @@ whoWillWin game@(team, pieces, count) =
                     else if any (== Just (Victor (oppositeTeam team))) outcomes then Just (Victor (oppositeTeam team))
                     else Nothing
             where validMoves = possibleGameMoves game
-                    outcomes = [whoWillWin nextGame | nextMove <- validMoves, let Just nextGame = move game nextMove]
+                  outcomes = [whoWillWin nextGame | nextMove <- validMoves, let Just nextGame = move game nextMove]
 
 -- does not work 
 bestMove :: Game -> Move
