@@ -9,17 +9,16 @@ type Rating = Int
 
 -- Games passed to whoWillWin should have a forced checkmate on the board of no more than mate in 3
 whoWillWin :: Game -> Maybe Winner
-whoWillWin game = aux game 2 
-    where aux _ 0 = Nothing
-          aux game@(team, pieces, count) limit = 
-            case winner game of
-                Just w -> Just w
-                Nothing ->  if any (== Just (Victor team)) outcomes then Just (Victor team)
-                            else if any (== Just Stalemate) outcomes then Just Stalemate
-                            else if any (== Just (Victor (oppositeTeam team))) outcomes then Just (Victor (oppositeTeam team))
-                            else Nothing
-                    where validMoves = possibleGameMoves game
-                          outcomes = [aux nextGame (limit - 1) | nextMove <- validMoves, let Just nextGame = move game nextMove]
+whoWillWin game@(_, _, 0) = Nothing
+whoWillWin game@(team, pieces, count) = 
+    case winner game of
+        Just w -> Just w
+        Nothing ->  if any (== Just (Victor team)) outcomes then Just (Victor team)
+                    else if all (== Just Stalemate) outcomes then Just Stalemate
+                    else if any (== Just (Victor (oppositeTeam team))) outcomes then Just (Victor (oppositeTeam team))
+                    else Nothing
+            where validMoves = possibleGameMoves game
+                    outcomes = [whoWillWin nextGame | nextMove <- validMoves, let Just nextGame = move game nextMove]
 
 -- does not work 
 bestMove :: Game -> Move
@@ -164,15 +163,13 @@ showPos (7,y) = "g" ++ show y
 showPos (8,y) = "h" ++ show y
 
 showGame :: Game -> String
-showGame (turn, pieces, turns) = init $ unlines [showTurn turn, show turns, unwords [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]]
+showGame game@(turn, pieces, turns) = init $ unlines [showTurn turn, show turns, unwords [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]]
   where showTurn :: Team -> String
         showTurn White = "w"
         showTurn Black = "b"
 
 writeGame :: Game -> FilePath -> IO ()
-writeGame game path = do
-    writeFile path (showGame game)
-    return ()
+writeGame game path = undefined
 
 loadGame :: FilePath -> IO (Maybe Game)
 loadGame path = do
