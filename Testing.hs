@@ -101,12 +101,6 @@ testWinner = assess "winner" 0 $ do
         check "that then winner wins" $ winner win1 `shouldBe` Just (Victor White)
         check "that there is no winner when time runs out" $ winner timeOut `shouldBe` Just Stalemate
 
-testWhoWillWin :: Grader String
-testWhoWillWin = assess "whoWillWin" 0 $ do
-        check "that the winner will win" $ whoWillWin win1 `shouldBe` Just (Victor White)
-        check "that there will be no winner when time runs out" $ whoWillWin timeOut `shouldBe` Just Stalemate
-
-
 testReadShowGame :: Grader String
 testReadShowGame = assess "readGame & showGame" 0 $ do
         check "that readGame reads a game" $ readGame initialGameStr `shouldBe` Just initialGame
@@ -119,8 +113,8 @@ testLoadGame = assess "loadGame" 0 $ do
 
 testWhoWillWin :: Grader String
 testWhoWillWin = assess "whoWillWin" 0 $ do
-        check "that the winner will win" $ whoWillWin win1 3 `shouldBe` Just (Victor White)
-        check "that there will be no winner when time runs out" $ whoWillWin timeOut 3 `shouldBe` Just Stalemate
+        check "that the winner will win" $ whoWillWin win1 `shouldBe` Just (Victor White)
+        check "that there will be no winner when time runs out" $ whoWillWin timeOut `shouldBe` Just Stalemate
 
 testBestMove :: Grader String
 testBestMove = assess "bestMove" 0 $ do
