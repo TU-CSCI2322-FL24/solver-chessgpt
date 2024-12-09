@@ -131,7 +131,8 @@ isEmpty game loc = isNothing $ getPiece game loc
 -- checks that the destination position is not currently occupied by a piece of the same color 
     -- if the destination is occupied by an opposite colored piece, returns true
 canMake :: Game -> Piece -> Position -> Bool
-canMake game@(turn,_,_) ((x1, y1), (Pawn, White)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Pawn, White)) (x2, y2) =
+    piece `elem` pieces &&
     turn==White && inBounds (x2, y2) &&
     (x2 == x1 && y2 == y1 + 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
     (x2 == x1 && y1 == 2 && y2 == 4 && isNothing (getPiece game (x2, 3)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
@@ -139,7 +140,8 @@ canMake game@(turn,_,_) ((x1, y1), (Pawn, White)) (x2, y2) =
     case getPiece game (x2, y2) of -- diagonal capture
         Just (_,team) -> team == Black
         Nothing     -> False)
-canMake game@(turn,_,_) ((x1, y1), (Pawn, Black)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Pawn, Black)) (x2, y2) =
+    piece `elem` pieces &&
     turn == Black && inBounds (x2, y2) &&
     (x2 == x1 && y2 == y1 - 1 && isNothing (getPiece game (x2, y2))) ||  -- regular one-step forward
     (x2 == x1 && y1 == 7 && y2 == 5 && isNothing (getPiece game (x2, 6)) && isNothing (getPiece game (x2, y2))) ||  -- initial two-step
@@ -147,30 +149,35 @@ canMake game@(turn,_,_) ((x1, y1), (Pawn, Black)) (x2, y2) =
     case getPiece game (x2, y2) of -- diagonal capture
         Just (_,team) -> team == White
         Nothing     -> False)
-canMake game@(turn,_,_) piece@((x1, y1), (Rook, team)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Rook, team)) (x2, y2) =
+    piece `elem` pieces &&
     turn == team && inBounds (x2, y2) &&
     ((x2 == x1 || y2 == y1) && pathClear game (x1, y1) (x2, y2)) &&  -- clear row/column
     canCapture game (x2, y2) piece
-canMake game@(turn,_,_) piece@((x1, y1), (Knight, team)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Knight, team)) (x2, y2) =
+    piece `elem` pieces &&
     turn == team && inBounds (x2, y2) &&
     ((abs (x2 - x1), abs (y2 - y1)) `elem` [(2, 1), (1, 2)]) &&
     canCapture game (x2, y2) piece
-canMake game@(turn,_,_) piece@((x1, y1), (Bishop, team)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Bishop, team)) (x2, y2) =
+    piece `elem` pieces &&
     turn == team && inBounds (x2, y2) &&
     abs (x2 - x1) == abs (y2 - y1) &&  -- diagonal check
     pathClear game (x1, y1) (x2, y2) &&
     canCapture game (x2, y2) piece
-canMake game@(turn,_,_) piece@((x1, y1), (Queen, team)) (x2, y2) =
+canMake game@(turn,pieces,_) piece@((x1, y1), (Queen, team)) (x2, y2) =
+    piece `elem` pieces &&
     turn == team && inBounds (x2, y2) &&
     ((x2 == x1 || y2 == y1) && pathClear game (x1, y1) (x2, y2) ||  -- rook-like move
      abs (x2 - x1) == abs (y2 - y1) && pathClear game (x1, y1) (x2, y2)) &&  -- bishop-like move
     canCapture game (x2, y2) piece
 canMake game@(turn,pieces,turns) piece@((x1, y1), (King, team)) (x2, y2) =
+    piece `elem` pieces &&
     turn == team && inBounds (x2, y2) &&
     abs (x2 - x1) <= 1 && abs (y2 - y1) <= 1 &&  -- one-square in any direction
-    canCapture game (x2, y2) piece && 
-    null [op | op <- getTeamPieces game (oppositeTeam team), canMake newGame op (x2,y2)]--prevents king from moving into check
-       where newGame = (oppositeTeam turn,pieces,turns-1)
+    canCapture game (x2, y2) piece -- && 
+    -- null [op | op <- getTeamPieces game (oppositeTeam team), canMake newGame op (x2,y2)]--prevents king from moving into check
+    --    where newGame = (oppositeTeam turn,pieces,turns-1)
 
 -- takes a game, position, and piece and checks whether the position is currently occupied 
     -- if the piece is the same color -> return false  
@@ -188,21 +195,30 @@ promote ((x, 1), (Pawn, Black)) = ((x, 1), (Queen, Black))
 promote piece = piece
 
 possibleMoves :: Game -> Piece -> [Move]
-possibleMoves game piece@((x, y), (Pawn, team))   = 
+possibleMoves game piece@((x, y), (Pawn, team)) = 
   [Move piece move | move <- moves, canMake game piece move]
     where moves = [(x,y+1),(x,y+2),(x,y-1),(x,y-2)]
-possibleMoves game piece@((x, y), (Rook, team))   = 
+possibleMoves game piece@((x, y), (Rook, team)) = 
   [Move ((x, y), (Rook,team) ) (x, ys) | ys <- [1..8], canMake game piece (x,ys)] ++
   [Move ((x, y), (Rook,team) ) (xs, y) | xs <- [1..8], canMake game piece (xs,y)]
 possibleMoves game piece@((x,y), (Knight, team)) = 
   [Move piece move | move <- moves,canMake game piece move]
     where moves = [(x+2,y+1),(x+1,y+2),(x+2,y-1),(x-1,y+2),(x-2,y+1),(x+1,y-2),(x-1,y-2),(x-2,y-1)]
-possibleMoves game piece@((x, y), (Bishop, team))    = 
+possibleMoves game piece@((x, y), (Bishop, team)) = 
   [Move piece move | move <- moves,canMake game piece move]--ensures moves are in bounds
-    where moves = [(x+1,y+1),(x+2,y+2),(x+3,y+3),(x+4,y+4),(x+5,y+5),(x+6,y+6),(x+7,y+7),(x+8,y+8),(x-1,y-1),(x-2,y-2),(x-3,y-3),(x-4,y-4),(x-5,y-5),(x-6,y-6),(x-7,y-7),(x-8,y-8)]
-possibleMoves game ((x,y), (Queen, team))        = 
-  (possibleMoves game (((x,y), (Rook, team)))) ++ (possibleMoves game ((x,y), (Bishop,team)))
-possibleMoves game piece@((x,y), (King, team))   = 
+    where moves = [(x + n, y + n) | n <- [1..7]] ++ 
+                  [(x - n, y - n) | n <- [1..7]] ++
+                  [(x + n, y - n) | n <- [1..7]] ++ 
+                  [(x - n, y + n) | n <- [1..7]] 
+possibleMoves game piece@((x,y), (Queen, team)) = 
+  [Move piece move | move <- moves, canMake game piece move] ++ 
+  [Move ((x, y), (Queen,team) ) (x, ys) | ys <- [1..8], canMake game piece (x,ys)] ++
+  [Move ((x, y), (Queen,team) ) (xs, y) | xs <- [1..8], canMake game piece (xs,y)]
+    where moves = [(x + n, y + n) | n <- [1..7]] ++ 
+                  [(x - n, y - n) | n <- [1..7]] ++
+                  [(x + n, y - n) | n <- [1..7]] ++ 
+                  [(x - n, y + n) | n <- [1..7]]
+possibleMoves game piece@((x,y), (King, team)) = 
   [Move piece move | move <- moves, canMake game piece move]
     where moves = [(x,y+1),(x+1,y),(x,y-1),(x-1,y),(x+1,y+1),(x+1,y-1),(x-1,y-1),(x-1,y+1)]
 

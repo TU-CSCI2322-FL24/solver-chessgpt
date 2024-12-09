@@ -2,28 +2,46 @@ module ChessGPT where
 import Chess
 import Text.Read
 import Data.Maybe
+import Data.List
+import Data.Ord
 
-type Rating = Int
+type Rating = Int 
 
 -- Games passed to whoWillWin should have a forced checkmate on the board of no more than mate in 3
--- use limit to prevent stack overflow error, ensure that limit is greater than the number of moves for checkmate
-whoWillWin :: Game -> Int -> Maybe Winner
-whoWillWin _ 0 = Nothing
-whoWillWin game@(team, pieces, count) limit = 
-    case winner game of
-        Just w -> Just w
-        Nothing ->  if Just (Victor team) `elem` outcomes then Just (Victor team)
-                    else if Just Stalemate `elem` outcomes then Just Stalemate
-                    else if Just (Victor (oppositeTeam team)) `elem` outcomes then Just (Victor (oppositeTeam team))
-                    else Nothing
-            where validMoves = possibleGameMoves game
-                  outcomes = [whoWillWin nextGame (limit - 1) | nextMove <- validMoves, Just nextGame <- [move (team, pieces, count - 1) nextMove]]
+whoWillWin :: Game -> Maybe Winner
+whoWillWin game = aux game 2 
+    where aux _ 0 = Nothing
+          aux game@(team, pieces, count) limit = 
+            case winner game of
+                Just w -> Just w
+                Nothing ->  if any (== Just (Victor team)) outcomes then Just (Victor team)
+                            else if any (== Just Stalemate) outcomes then Just Stalemate
+                            else if any (== Just (Victor (oppositeTeam team))) outcomes then Just (Victor (oppositeTeam team))
+                            else Nothing
+                    where validMoves = possibleGameMoves game
+                          outcomes = [aux nextGame (limit - 1) | nextMove <- validMoves, let Just nextGame = move game nextMove]
 
+-- does not work 
 bestMove :: Game -> Move
-bestMove game@(team, pieces, count) = undefined
+bestMove game@(team, pieces, count) = if not $ null winnings then head winnings else if not $ null ties then head ties else head allMoves
+    where outputs = [(whoWillWin newGame, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]        
+          winnings = [theMove | (winner, theMove) <- outputs, winner == Just (Victor team)]
+          ties = [theMove | (winner, theMove) <- outputs, winner == Just Stalemate || winner == Nothing]
+          allMoves = [theMove | (_, theMove) <- outputs]
 
-whoMightWin :: Game -> Int -> (Rating, Move)
-whoMightWin game depth = undefined 
+whoMightWin :: Game -> Int -> Rating
+whoMightWin game 0 = rateGame game 
+whoMightWin game@(team, _, _) depth 
+    | team == White && null scores = 1000
+    | team == Black && null scores = -1000
+    | team == White = maximum scores
+    | otherwise = minimum scores
+    where scores = [whoMightWin newGame (depth - 1) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
+
+-- does not work
+goodMove :: Game -> Int -> Move
+goodMove game@(team, pieces, count) depth = if team == White then snd (maximumBy (comparing fst) outputs) else snd (minimumBy (comparing fst) outputs)
+    where outputs = [(whoMightWin newGame depth, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
 
 rateGame :: Game -> Rating
 rateGame (_,pieces,_) = wMaterial - bMaterial
