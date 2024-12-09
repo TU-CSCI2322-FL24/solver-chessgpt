@@ -8,7 +8,7 @@ import System.IO
 import System.Environment
 import System.Console.GetOpt
 
-data Flag = Winner | Depth String | MoveFl String | Verbose | Interactive | Interactive2p | Hard | Cheats | Help | Test  deriving (Show, Eq)
+data Flag = Winner | Depth String | MoveFl String | Verbose | Interactive | Interactive2p | Hard | Kaizo | Cheats | Help | Test  deriving (Show, Eq)
 
 options :: [OptDescr Flag]
 options = [ Option ['w'] ["winner"] (NoArg Winner) "Print best move and exit."
@@ -17,12 +17,20 @@ options = [ Option ['w'] ["winner"] (NoArg Winner) "Print best move and exit."
           , Option ['v'] ["verbose"] (NoArg Verbose) "Pretty-print the result of the move and exit."
           , Option ['i'] ["interactive"] (NoArg Interactive) "Play a game against the computer."
           , Option ['2'] ["interactive2p"] (NoArg Interactive2p) "Play a two-player game of chess."
-          , Option ['a'] ["hard"] (NoArg Hard) "Play a game against a more skilled computer."
+          , Option ['a'] ["hard"] (NoArg Hard) "Increase the skill of the computer."
+          , Option ['k'] ["kaizo"] (NoArg Kaizo) "Do you fear death?"
           , Option ['c'] ["cheats"] (NoArg Cheats) "enable illegal moves."
           , Option ['h'] ["help"] (NoArg Help) "Print usage information and exit."
           , Option ['t'] ["test"] (NoArg Test) "Run tests and exit."
           ]
-
+{-
+Default: output good move, verbose gives details, depth gives depth. Should be done
+Should help and test combine with others?
+Move - done - should any additional info be provided?
+is verbose adequate?
+complete interactive
+check errors
+-}
 --run with ./chessGPT in command line
 main :: IO()
 main = do
@@ -45,8 +53,10 @@ dispatch fs game@(team,_,_) depth
   | any isMove fs = moveIO fs game
   | Winner `elem` fs = if Verbose `elem` fs then putStrLn ("The best move is: " ++ show wM ++ "; the outcome will be: " ++ (winEval (whoWillWin game depth) team)) 
   else putStrLn ("The best move is: " ++ show wM)
-  | Interactive `elem` fs = undefined
-  | Interactive2p `elem` fs = interactive2p (Verbose `elem` fs) (Cheats `elem` fs) game depth
+  | Interactive `elem` fs = do
+    t <- teamSelect
+    interactive (Verbose `elem` fs) (Cheats `elem` fs) (Hard `elem` fs) (Kaizo `elem` fs) game t depth
+  | Interactive2p `elem` fs = interactive2p (Verbose `elem` fs) (Cheats `elem` fs) game
   | otherwise = if Verbose `elem` fs then putStrLn ("Try: " ++ show dM ++ "; its rating is " ++ show dR)
   else putStrLn ("Try: " ++ show dM)
     where wM = bestMove game
@@ -81,8 +91,49 @@ winEval w t = case w of
   Just (Victor team) -> if team==t then "a victory for you" else "a loss for you"
   _ -> "indeterminate"
 
-interactive2p :: Bool -> Bool -> Game -> Int -> IO()
-interactive2p isVerbose isCheat game@(team,_,turns) depth = do
+interactive :: Bool -> Bool -> Bool -> Bool -> Game -> Team -> Int -> IO()
+interactive isVerbose isCheat isHard isKaizo game@(turn,_,turns) team depth = do
+  if isVerbose then printGame game else putStrLn $ showGame game
+  putStrLn (show turn ++ "'s turn; " ++ show turns ++ " turns remaining")
+  if turn == team then do
+    m0 <- prompt "enter move"
+    if m0 == "forfeit" then do putStrLn (show (oppositeTeam team) ++ " wins")
+                               return ()
+    else
+      let m = readMove game m0
+      in case m of 
+        Just movefl -> if isCheat then 
+                         case cMove game movefl of
+                           Just g -> case winner g of
+                                       Nothing -> interactive isVerbose isCheat isHard isKaizo g team depth
+                                       Just Stalemate -> putStrLn "It's a draw!"
+                                       Just (Victor w) -> putStrLn (show w ++ " wins!") 
+                           Nothing -> do putStrLn "Error: illegal move"
+                                         interactive isVerbose isCheat isHard isKaizo game team depth
+                         else case move game movefl of
+                           Just g -> case winner g of
+                                       Nothing -> interactive isVerbose isCheat isHard isKaizo g team depth
+                                       Just Stalemate -> putStrLn "It's a draw!"
+                                       Just w -> putStrLn (show w ++ " wins!") 
+                           Nothing -> do putStrLn "Error: illegal move"
+                                         interactive isVerbose isCheat isHard isKaizo game team depth
+        Nothing -> do putStrLn "Error: invalid move"
+                      interactive isVerbose isCheat isHard isKaizo game team depth
+  else if isHard then let m = bestMove game
+                      in case move game m of
+                       Just g -> interactive isVerbose isCheat isHard isKaizo g team depth
+                       Nothing -> putStrLn "guys I think the AI is borked"
+  {-else if isKaizo then let m = bestMove game
+                       in case move game m of
+                        Just g -> interactive isVerbose isCheat isHard isKaizo g team depth
+                        Nothing -> putStrLn "guys I think the AI is borked"-}
+  else let (_,m) = whoMightWin game depth
+       in case move game m of
+        Just g -> interactive isVerbose isCheat isHard isKaizo g team depth
+        Nothing -> putStrLn "guys I think the AI is borked"
+     
+interactive2p :: Bool -> Bool -> Game -> IO()
+interactive2p isVerbose isCheat game@(team,_,turns) = do
     if isVerbose then printGame game else putStrLn $ showGame game
     putStrLn (show team ++ "'s turn; " ++ show turns ++ " turns remaining")
     m0 <- prompt "enter move"
@@ -94,20 +145,25 @@ interactive2p isVerbose isCheat game@(team,_,turns) depth = do
           Just movefl -> if isCheat then 
                          case cMove game movefl of
                            Just g -> case winner g of
-                                       Nothing -> interactive2p isVerbose isCheat g depth
+                                       Nothing -> interactive2p isVerbose isCheat g
                                        Just Stalemate -> putStrLn "It's a draw!"
                                        Just (Victor w) -> putStrLn (show w ++ " wins!") 
                            Nothing -> do putStrLn "Error: illegal move"
-                                         interactive2p isVerbose isCheat game depth
+                                         interactive2p isVerbose isCheat game
                          else case move game movefl of
                            Just g -> case winner g of
-                                       Nothing -> interactive2p isVerbose isCheat g depth
+                                       Nothing -> interactive2p isVerbose isCheat g
                                        Just Stalemate -> putStrLn "It's a draw!"
                                        Just w -> putStrLn (show w ++ " wins!") 
                            Nothing -> do putStrLn "Error: illegal move"
-                                         interactive2p isVerbose isCheat game depth
+                                         interactive2p isVerbose isCheat game
           Nothing -> do putStrLn "Error: invalid move"
-                        interactive2p isVerbose isCheat game depth
+                        interactive2p isVerbose isCheat game
+
+teamSelect :: IO Team
+teamSelect = do
+  team <- prompt "Select your team"
+  if team `elem` ["White","white","W","w"] then return White else return Black
 
 prompt :: String -> IO String
 prompt str = 
