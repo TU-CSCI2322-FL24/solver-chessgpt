@@ -74,3 +74,6 @@ timeOut = (Black,[((1,1),(King,White)),((8,8),(King,Black))],0)
 
 win1 :: Game
 win1 = (Black,[((1,1),(King,White))],50)
+
+mateGame1 :: Game
+mateGame1 = (White,[((3,3),(King,White)),((2,7),(Queen,White)),((1,1),(King,Black))],50)

@@ -26,8 +26,8 @@ getPosition :: Piece -> Position
 getPosition ((x,y), (_,_)) = (x,y)
 
 getTeamPieces :: Game -> Team -> [Piece]
-getTeamPieces game@(_,pieces,_) White = [piece | piece <- pieces, getPieceTeam piece == White]
-getTeamPieces game@(_,pieces,_) Black = [piece | piece <- pieces, getPieceTeam piece == Black]
+getTeamPieces (_,pieces,_) White = [piece | piece <- pieces, getPieceTeam piece == White]
+getTeamPieces (_,pieces,_) Black = [piece | piece <- pieces, getPieceTeam piece == Black]
 
 opposite :: Game -> Piece -> [Piece]
 opposite game (_, (_, White)) = getTeamPieces game Black
@@ -60,11 +60,27 @@ move game@(team,pieces,count) (Move old newPos)
                 then (Black, replacePiece whites old newPiece++blacks,count-1) 
                 else (White, whites++replacePiece blacks old newPiece,count-1)
 
--- -- Format for a user-entered move is position of piece to move followed by the desired new position, e.g. a2 a4
+cMove :: Game -> Move -> Maybe Game
+cMove game@(team,pieces,count) (Move old newPos)
+  | not $ inBounds newPos = Nothing -- Can't make move
+  | getPieceTeam old /= team      = Nothing -- Attempted move is by the wrong team
+  | otherwise = 
+    case (getPiece game newPos) of 
+      Just target -> Just (newTeam, replacePiece pieces (newPos,target) newPiece,count-1)
+      Nothing -> Just newGame -- Just a move, no pieces taken
+    where whites = getTeamPieces game White
+          blacks = getTeamPieces game Black
+          newPiece = (newPos, (getPieceType old, getPieceTeam old))
+          newGame@(newTeam, pieces,newCount) = 
+              if old `elem` whites 
+                then (Black, replacePiece whites old newPiece++blacks,count-1) 
+                else (White, whites++replacePiece blacks old newPiece,count-1)
+
+-- -- Format for a user-entered move is position of piece to move followed by the desired new position, e.g. a2,a4
 readMove :: Game -> String -> Maybe Move
 readMove game str = 
     do 
-      (oldStr, newStr) <- case (words str) of
+      (oldStr, newStr) <- case (splitOn "," str) of
           (oldStr:newStr:_) -> Just (oldStr, newStr)
           _ -> Nothing
       oldPos <- parsePosition oldStr
