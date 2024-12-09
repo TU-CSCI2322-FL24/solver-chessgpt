@@ -40,7 +40,7 @@ main = do
   if (Help `elem` flags) || (not $ null errors)
   then putStrLn $ usageInfo "ChessGPT [options] [filename] chess game." options
   else if Test `elem` flags then runTests 1 True
-  else
+  else 
     do let fName = if (null args)||(null inputs) then "initial.txt" else head inputs
        contents <- readFile fName
        case (readGame contents, getDepth flags) of
@@ -95,13 +95,18 @@ winEval w = case w of
   _ -> "indeterminate"
 
 interactive :: Bool -> Bool -> Bool -> Bool -> Game -> Team -> Int -> IO()
-interactive isVerbose isCheat isHard isKaizo game@(turn,_,turns) team depth = do
+interactive isVerbose isCheat isHard isKaizo game@(turn,pieces,turns) team depth = do
   if isVerbose then printGame game else putStrLn $ showGame game
   putStrLn (show turn ++ "'s turn; " ++ show turns ++ " turns remaining")
   if turn == team then do
     m0 <- prompt "enter move"
     if m0 == "forfeit" then do putStrLn (show (oppositeTeam team) ++ " wins")
                                return ()
+    else if m0 == "save" then do writeGame game "saved.txt"
+                                 return ()
+    else if getAddPiece m0 /= Nothing then case getAddPiece m0 of 
+                                            Just p -> do interactive isVerbose isCheat isHard isKaizo (turn,(p:pieces),turns) team depth
+                                            Nothing -> return ()
     else
       let m = readMove game m0
       in case m of 
@@ -165,12 +170,18 @@ interactive isVerbose isCheat isHard isKaizo game@(turn,_,turns) team depth = do
         Nothing -> putStrLn "guys I think the AI is borked"
      
 interactive2p :: Bool -> Bool -> Game -> IO()
-interactive2p isVerbose isCheat game@(team,_,turns) = do
+interactive2p isVerbose isCheat game@(turn,pieces,turns) = do
     if isVerbose then printGame game else putStrLn $ showGame game
-    putStrLn (show team ++ "'s turn; " ++ show turns ++ " turns remaining")
+    putStrLn (show turn ++ "'s turn; " ++ show turns ++ " turns remaining")
     m0 <- prompt "enter move"
-    if m0 == "forfeit" then do putStrLn (show (oppositeTeam team) ++ " wins")
+    if m0 == "forfeit" then do putStrLn (show (oppositeTeam turn) ++ " wins")
                                return ()
+    else if m0 == "save" then do filename <- prompt "enter desired file name"
+                                 writeGame game (filename++".txt")
+                                 return ()
+    else if getAddPiece m0 /= Nothing then case getAddPiece m0 of 
+                                            Just p -> do interactive2p isVerbose isCheat (turn,(p:pieces),turns)
+                                            Nothing -> return ()
     else
       let m = readMove game m0
       in case m of
@@ -204,6 +215,10 @@ teamSelect :: IO Team
 teamSelect = do
   team <- prompt "Select your team"
   if team `elem` ["White","white","W","w"] then return White else return Black
+
+getAddPiece :: String -> Maybe Piece
+getAddPiece ('a':'d':'d':x) = parsePiece x
+getAddPiece _ = Nothing
 
 prompt :: String -> IO String
 prompt str = 
