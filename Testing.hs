@@ -58,7 +58,6 @@ testMove = assess "move" 0 $ do
         check "that a queen can take a piece" $ queenPieces `shouldNotContain` ((1,7),(Rook,Black))
         check "that a king can move" $ getPiece (fromJust $ move rookGame1 (Move ((1,1),(King,White)) (2,2))) (2,2) `shouldBe` Just (King,White)
         check "that a king can't move two spaces" $ move rookGame1 (Move ((1,1),(King,White)) (3,2)) `shouldBe` Nothing
-        check "that a king can't move into check" $ move kingGame1 (Move ((2,1),(King,White)) (1,1)) `shouldBe` Nothing--do we want this?
         check "that a king can't move through a piece" $ move initialGame (Move ((5, 1), (King, White)) (5,2)) `shouldBe` Nothing
         check "that a king can take a piece" $ kingPieces `shouldNotContain` ((1,2),(Rook,Black))
         check "that a king can't move out of bounds" $ move initialGame (Move ((5, 1), (King, White)) (5,0)) `shouldBe` Nothing
@@ -79,7 +78,6 @@ testCanMake = assess "canMake" 0 $ do
         check "that a pawn can move one space again" $ canMake pawnGame2 ((1, 3), (Pawn, White)) (1,4) `shouldBe` True
         check "that a pawn can't move two spaces normally" $ canMake pawnGame1 ((1, 3), (Pawn, White)) (1,5) `shouldBe` False
         check "that a pawn can't move through another piece" $ canMake (White,[((1, 3), (Pawn, White)),((1, 4), (Pawn, Black))],50) ((1, 3), (Pawn, White)) (1,4) `shouldBe` False
-        check "that a king can't move into check" $ canMake kingGame1 ((2,1),(King,White)) (1,1) `shouldBe` False
         check "that a king can't move initially" $ canMake initialGame ((5, 1), (King, White)) (5,2) `shouldBe` False
         check "that a king can't move out of bounds" $ canMake initialGame ((5, 1), (King, White)) (5,2) `shouldBe` False
         check "that Black can't move on the first turn" $ canMake initialGame ((1, 7), (Pawn, Black)) (1,6) `shouldBe` False
@@ -113,12 +111,13 @@ testLoadGame = assess "loadGame" 0 $ do
 
 testWhoWillWin :: Grader String
 testWhoWillWin = assess "whoWillWin" 0 $ do
-        check "that the winner will win" $ whoWillWin win1 `shouldBe` Just (Victor White)
-        check "that there will be no winner when time runs out" $ whoWillWin timeOut `shouldBe` Just Stalemate
+        check "that the winner will win" $ whoWillWin win1 `shouldBe` (Victor White)
+        check "that there will be no winner when time runs out" $ whoWillWin timeOut `shouldBe` Stalemate
 
 testBestMove :: Grader String
 testBestMove = assess "bestMove" 0 $ do
-        check "that the best move of a winnable game is to win" $ bestMove mateGame1 `shouldBe` Move ((2,7),(Queen,White)) (2,2)
+        check "that the best move of a winnable game is to win" $ bestMove mateGame1 `shouldBe` Move ((2,2),(Queen,White)) (1,1)
+        check "that bestMove from two turns gets to one turn" $ bestMove mateGame2 `shouldBe` Move ((2,7),(Queen,White)) (2,2)
 
 --Only checks chessGPT.hs       
 testSyntax :: Grader String

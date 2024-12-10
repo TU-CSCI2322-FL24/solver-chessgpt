@@ -8,15 +8,13 @@ import Data.Ord
 type Rating = Int 
 
 -- Games passed to whoWillWin should have a forced checkmate on the board of no more than mate in 3
-whoWillWin :: Game -> Maybe Winner
-whoWillWin game@(_, _, 0) = Nothing
+whoWillWin :: Game -> Winner
 whoWillWin game@(team, pieces, count) = 
     case winner game of
-        Just w -> Just w
-        Nothing ->  if any (== Just (Victor team)) outcomes then Just (Victor team)
-                    else if all (== Just Stalemate) outcomes then Just Stalemate
-                    else if any (== Just (Victor (oppositeTeam team))) outcomes then Just (Victor (oppositeTeam team))
-                    else Nothing
+        Just w -> w
+        Nothing ->  if any (== (Victor team)) outcomes then (Victor team)
+                    else if any (== Stalemate) outcomes then Stalemate
+                    else (Victor (oppositeTeam team))
             where validMoves = possibleGameMoves game
                   outcomes = [whoWillWin nextGame | nextMove <- validMoves, let Just nextGame = move game nextMove]
 
@@ -24,8 +22,8 @@ whoWillWin game@(team, pieces, count) =
 bestMove :: Game -> Move
 bestMove game@(team, pieces, count) = if not $ null winnings then head winnings else if not $ null ties then head ties else head allMoves
     where outputs = [(whoWillWin newGame, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]        
-          winnings = [theMove | (winner, theMove) <- outputs, winner == Just (Victor team)]
-          ties = [theMove | (winner, theMove) <- outputs, winner == Just Stalemate || winner == Nothing]
+          winnings = [theMove | (winner, theMove) <- outputs, winner == (Victor team)]
+          ties = [theMove | (winner, theMove) <- outputs, winner == Stalemate]
           allMoves = [theMove | (_, theMove) <- outputs]
 
 whoMightWin :: Game -> Int -> Rating
@@ -43,7 +41,12 @@ goodMove game@(team, pieces, count) depth = if team == White then snd (maximumBy
     where outputs = [(whoMightWin newGame depth, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
 
 rateGame :: Game -> Rating
-rateGame (_,pieces,_) = wMaterial - bMaterial
+rateGame game@(_,pieces,_) = 
+    case winner game of
+      Just Stalemate -> 0
+      Just (Victor Black) -> -1000
+      Just (Victor White) -> 1000
+      Nothing -> wMaterial - bMaterial
     where wMaterial = sum [pieceValue pType | (_, (pType, team)) <- pieces, team == White]
           bMaterial = sum [pieceValue pType | (_, (pType, team)) <- pieces, team == Black]
 
@@ -163,10 +166,12 @@ showPos (7,y) = "g" ++ show y
 showPos (8,y) = "h" ++ show y
 
 showGame :: Game -> String
-showGame game@(turn, pieces, turns) = init $ unlines [showTurn turn, show turns, unwords [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]]
+showGame game@(turn, pieces, turns) = 
+    intercalate "\n" [showTurn turn, show turns, unwords piecesStrs]
   where showTurn :: Team -> String
         showTurn White = "w"
         showTurn Black = "b"
+        piecesStrs = [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]
 
 writeGame :: Game -> FilePath -> IO ()
 writeGame game path = undefined
