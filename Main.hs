@@ -18,16 +18,11 @@ options = [ Option ['w'] ["winner"]        (NoArg Winner)           "Print best 
           , Option ['v'] ["verbose"]       (NoArg Verbose)          "Pretty-print the result of the move and exit."
           , Option ['i'] ["interactive"]   (NoArg Interactive)      "Play a game against the computer."
           , Option ['2'] ["interactive2p"] (NoArg Interactive2p)    "Play a two-player game of chess."
-          , Option ['a'] ["hard"]          (NoArg Hard)             "Increase the skill of the computer."
-          , Option ['k'] ["kaizo"]         (NoArg Kaizo)            "Do you fear death?"
           , Option ['c'] ["cheats"]        (NoArg Cheats)           "enable illegal moves."
           , Option ['h'] ["help"]          (NoArg Help)             "Print usage information and exit."
           , Option ['t'] ["test"]          (NoArg Test)             "Run tests and exit."
           ]
-{-
-Default: output good move, verbose gives details, depth gives depth. Should be done
-complete interactive
--}
+
 --run with ./chessGPT in command line
 main :: IO()
 main = do
@@ -54,7 +49,7 @@ dispatch fs game depth
       else putStrLn ("The best move is: " ++ show wM)
   | Interactive `elem` fs = do
     t <- teamSelect
-    interactive (Cheats `elem` fs) (Hard `elem` fs) (Kaizo `elem` fs) t depth game
+    interactive (Cheats `elem` fs) t depth game
   | Interactive2p `elem` fs = interactive2p (Cheats `elem` fs) depth game
   | otherwise = if Verbose `elem` fs then putStrLn ("Try: " ++ show dM ++ "; its rating is " ++ show dR)
   else putStrLn ("Try: " ++ show dM)
@@ -63,20 +58,6 @@ dispatch fs game depth
           dR = case move game dM of
                 Just g -> rateGame game
                 Nothing -> -1000000
-
-getMoveFl :: [Flag] -> Game -> Maybe Move
-getMoveFl [] _ = Nothing
-getMoveFl (MoveFl m:_) game = readMove game m
-getMoveFl (_:fs) game = getMoveFl fs game
-
-isMove :: Flag -> Bool
-isMove (MoveFl _) = True
-isMove _ = False
-
-getDepth :: [Flag] -> Maybe Int
-getDepth [] = Just 3
-getDepth (Depth d:_) = readMaybe d
-getDepth (_:fs) = getDepth fs
 
 moveIO :: [Flag] -> Game -> IO()
 moveIO flags game = 
@@ -87,27 +68,13 @@ moveIO flags game =
           Nothing -> putStrLn "Error: illegal move"
     Nothing -> putStrLn "Error: invalid move"
 
-winEval :: Winner -> String
-winEval w = case w of
-  Stalemate -> "a stalemate"
-  (Victor team) -> "a victory for " ++ show team
-
-rateEval :: Int -> String
-rateEval i
- | i==0      ="a stalemate"
- | i==(-1000)="a victory for black"
- | i==1000   ="a victory for white"
- | i>0       ="white is winning"
- | i<0       ="black is winning"--bucket
-
-interactive :: Bool -> Bool -> Bool -> Team -> Int -> Game -> IO()
-interactive isCheat isHard isKaizo team depth game@(turn,pieces,turns) = do
+interactive :: Bool -> Team -> Int -> Game -> IO()
+interactive isCheat team depth game@(turn,pieces,turns) = do
   printGame game
   putStrLn (show turn ++ "'s turn; " ++ show turns ++ " turns remaining")
   if turn /= team
-  then let m = if isHard then bestMove game else goodMove game depth
-       in case move game m of
-         Just g -> checkForWinner g (interactive isCheat isHard isKaizo team depth)
+  then case move game (goodMove game depth) of
+         Just g -> checkForWinner g (interactive isCheat team depth)
          Nothing -> putStrLn "guys I think the AI is borked"
   else do
     m0 <- prompt "enter move"
@@ -115,37 +82,26 @@ interactive isCheat isHard isKaizo team depth game@(turn,pieces,turns) = do
       "forfeit" -> putStrLn (show (oppositeTeam team) ++ " wins") 
       "save" -> do filename <- prompt "enter desired file name"
                    writeGame game (filename++".txt")
-                   interactive isCheat isHard isKaizo team depth game
+                   interactive isCheat team depth game
       "predict" -> putStrLn (rateEval $ whoMightWin game depth)
       ('a':'d':'d':x) -> 
         case parsePiece x of
-          Just p -> interactive isCheat isHard isKaizo team depth (turn,(p:pieces),turns)
+          Just p -> interactive isCheat team depth (turn,(p:pieces),turns)
           Nothing -> do putStrLn "invalid piece"
       ('r':'e':'m':x) -> 
         case parsePiece x of
-          Just p -> interactive isCheat isHard isKaizo team depth (turn,[piece | piece <- pieces, piece/=p],turns)
+          Just p -> interactive isCheat team depth (turn,[piece | piece <- pieces, piece/=p],turns)
           Nothing -> do putStrLn "invalid piece"
-                        interactive isCheat isHard isKaizo team depth game
+                        interactive isCheat team depth game
       _ ->
         let m = readMove game m0
             nG = (if isCheat then cMove else move) game =<< m
         in case (m,nG) of
-            (Just movefl,Just g) -> checkForWinner g (interactive isCheat isHard isKaizo team depth)
+            (Just movefl,Just g) -> checkForWinner g (interactive isCheat team depth)
             (Just movefl,Nothing) -> do putStrLn "Error: illegal move"
-                                        interactive isCheat isHard isKaizo team depth game
+                                        interactive isCheat team depth game
             (Nothing,_) -> do putStrLn "Error: invalid move"
-                              interactive isCheat isHard isKaizo team depth game
-    {-else if isKaizo then let m = bestMove game
-                         in case move game m of
-                          Just g -> case winner g of
-                                         Nothing -> interactive isVerbose isCheat isHard isKaizo g team depth
-                                         Just Stalemate -> do if isVerbose then printGame g else putStrLn $ showGame g
-                                                              putStrLn "It's a draw!"
-                                                              return ()
-                                         Just (Victor w) -> do if isVerbose then printGame g else putStrLn $ showGame g
-                                                               putStrLn (show w ++ " wins!")
-                                                               return () 
-                          Nothing -> putStrLn "guys I think the AI is borked"-}
+                              interactive isCheat team depth game
      
 interactive2p :: Bool -> Int -> Game -> IO()
 interactive2p isCheat depth game@(turn,pieces,turns) = do
@@ -178,6 +134,20 @@ interactive2p isCheat depth game@(turn,pieces,turns) = do
             (Nothing,_) -> do putStrLn "Error: invalid move"
                               interactive2p isCheat depth game
 
+getMoveFl :: [Flag] -> Game -> Maybe Move
+getMoveFl [] _ = Nothing
+getMoveFl (MoveFl m:_) game = readMove game m
+getMoveFl (_:fs) game = getMoveFl fs game
+
+isMove :: Flag -> Bool
+isMove (MoveFl _) = True
+isMove _ = False
+
+getDepth :: [Flag] -> Maybe Int
+getDepth [] = Just 3
+getDepth (Depth d:_) = readMaybe d
+getDepth (_:fs) = getDepth fs
+
 checkForWinner :: Game -> (Game -> IO ()) -> IO ()
 checkForWinner game cont = 
   case winner game of 
@@ -198,3 +168,28 @@ prompt str =
      hFlush stdout
      answer <- getLine
      return answer
+
+winEval :: Winner -> String
+winEval w = case w of
+  Stalemate -> "a stalemate"
+  (Victor team) -> "a victory for " ++ show team
+
+rateEval :: Int -> String
+rateEval i
+ | i==0       ="a stalemate"
+ | i==(-1000) ="a victory for black"
+ | i==1000    ="a victory for white"
+ | i>500      ="white is winning overwhelmingly"
+ | i<(-500)   ="black is winning overwhelmingly"
+ | i>100      ="white is winning"
+ | i<(-100)   ="black is winning"
+ | i>0        ="white is winning by a bit"
+ | i<0        ="black is winning by a bit"
+
+{- for difficulty options - unworkable due to bestMove being limited
+, Option ['a'] ["hard"]          (NoArg Hard)             "Increase the skill of the computer."
+, Option ['k'] ["kaizo"]         (NoArg Kaizo)            "Do you fear death?"
+use in intro to interactive
+let m = if isHard then bestMove game else goodMove game depth
+in case move game m of
+-}
