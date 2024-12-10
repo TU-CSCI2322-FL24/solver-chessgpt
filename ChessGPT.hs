@@ -7,9 +7,7 @@ import Data.Ord
 
 type Rating = Int 
 
--- Games passed to whoWillWin should have a count of less than 5, or they will likely stack overflow
-whoWillWin :: Game -> Maybe Winner
-whoWillWin game@(_, _, 0) = Just Stalemate 
+whoWillWin :: Game -> Winner
 whoWillWin game@(team, pieces, count) = 
     case winner game of
         Just w -> w
@@ -20,14 +18,26 @@ whoWillWin game@(team, pieces, count) =
                   outcomes = [whoWillWin nextGame | nextMove <- validMoves, let Just nextGame = move game nextMove]
 
 bestMove :: Game -> Move
-bestMove game@(team, pieces, count) = if not $ null winnings then head winnings else if not $ null ties then head ties else head allMoves
+bestMove game@(team, pieces, count) = if not $ null winnings then w else if not $ null ties then t else a
     where outputs = [(whoWillWin newGame, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]        
-          winnings = [theMove | (winner, theMove) <- outputs, winner == (Victor team)]
-          ties = [theMove | (winner, theMove) <- outputs, winner == Stalemate]
-          allMoves = [theMove | (_, theMove) <- outputs]
+          winnings@(w:_) = [theMove | (winner, theMove) <- outputs, winner == (Victor team)]
+          ties@(t:_) = [theMove | (winner, theMove) <- outputs, winner == Stalemate]
+          (a:_) = [theMove | (_, theMove) <- outputs]
 
 whoMightWin :: Game -> Int -> Rating
 whoMightWin game 0 = rateGame game 
+{- couldn't figure out this merge conflict - mp
+whoMightWin game@(team, _, _) depth 
+    | team == White && null scores = 1000
+    | team == Black && null scores = -1000
+    | team == White = maximum scores
+    | otherwise = minimum scores
+    where scores = [whoMightWin newGame (depth - 1) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
+
+goodMove :: Game -> Int -> Move
+goodMove game@(team, pieces, count) depth = --if team == White then snd (maximum outputs) else snd (minimum outputs)
+      if team == White then snd (maximumBy (comparing fst) outputs) else snd (minimumBy (comparing fst) outputs)
+-}
 whoMightWin game@(team, _, _) depth =
     if victor == Just (Victor White) then 1000 else if victor == Just (Victor Black) then -1000 else if team == White then maximum scores else minimum scores
     where scores = [whoMightWin newGame (depth-1) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
@@ -171,7 +181,9 @@ showGame game@(turn, pieces, turns) =
         piecesStrs = [showPiece (pType, pTeam) ++ showPos(x,y) | piece@((x,y), (pType, pTeam)) <- pieces]
 
 writeGame :: Game -> FilePath -> IO ()
-writeGame game path = undefined
+writeGame game path = do
+    writeFile path (showGame game)
+    return ()
 
 loadGame :: FilePath -> IO (Maybe Game)
 loadGame path = do

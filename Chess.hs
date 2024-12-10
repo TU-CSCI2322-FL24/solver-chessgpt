@@ -5,16 +5,14 @@ import Data.List.Split
 import Data.Maybe 
 import Text.Read
 
-data Move = Move Piece Position deriving (Show, Eq)
+data Move      = Move Piece Position deriving (Show, Eq)
 data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
-data Team = White | Black deriving (Show,Eq)
+data Team      = White | Black deriving (Show,Eq)
 
 type Position = (Int, Int)
--- type Game     = ([Piece],[Piece])
-type Game = (Team,[Piece],Int)
+type Game     = (Team,[Piece],Int)
 data Winner   = Victor Team | Stalemate deriving (Show, Eq)
--- type Piece    = (PieceType,Team,Position)
-type Piece = (Position, (PieceType, Team))
+type Piece    = (Position, (PieceType, Team))
 
 getPieceType :: Piece -> PieceType
 getPieceType (_,(b,_)) = b
@@ -54,7 +52,7 @@ move game@(team,pieces,count) (Move old newPos)
       Nothing -> Just newGame -- Just a move, no pieces taken
     where whites = getTeamPieces game White
           blacks = getTeamPieces game Black
-          newPiece = (newPos, (getPieceType old, getPieceTeam old))
+          newPiece = promote (newPos, (getPieceType old, getPieceTeam old))
           newGame@(newTeam, pieces,newCount) = 
               if old `elem` whites 
                 then (Black, replacePiece whites old newPiece++blacks,count-1) 
@@ -70,13 +68,13 @@ cMove game@(team,pieces,count) (Move old newPos)
       Nothing -> Just newGame -- Just a move, no pieces taken
     where whites = getTeamPieces game White
           blacks = getTeamPieces game Black
-          newPiece = (newPos, (getPieceType old, getPieceTeam old))
+          newPiece = promote (newPos, (getPieceType old, getPieceTeam old))
           newGame@(newTeam, pieces,newCount) = 
               if old `elem` whites 
                 then (Black, replacePiece whites old newPiece++blacks,count-1) 
                 else (White, whites++replacePiece blacks old newPiece,count-1)
 
--- -- Format for a user-entered move is position of piece to move followed by the desired new position, e.g. a2,a4
+--  Format for a user-entered move is position of piece to move followed by the desired new position, e.g. a2,a4
 readMove :: Game -> String -> Maybe Move
 readMove game str = 
     do 
