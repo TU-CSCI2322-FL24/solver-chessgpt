@@ -182,7 +182,7 @@ promote piece = piece
 possibleMoves :: Game -> Piece -> [Move]
 possibleMoves game piece@((x, y), (Pawn, team)) = 
   [Move piece move | move <- moves, canMake game piece move]
-    where moves = [(x,y+1),(x,y+2),(x,y-1),(x,y-2)]
+    where moves = [(x,y+1),(x,y+2),(x,y-1),(x,y-2),(x+1,y+1),(x+1,y-1),(x-1,y+1),(x-1,y-1)]
 possibleMoves game piece@((x, y), (Rook, team)) = 
   [Move ((x, y), (Rook,team) ) (x, ys) | ys <- [1..8], canMake game piece (x,ys)] ++
   [Move ((x, y), (Rook,team) ) (xs, y) | xs <- [1..8], canMake game piece (xs,y)]
