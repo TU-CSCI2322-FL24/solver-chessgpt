@@ -14,26 +14,30 @@ whoWillWin game@(team, pieces, count) =
         Nothing ->  if any (== (Victor team)) outcomes then (Victor team)
                     else if any (== Stalemate) outcomes then Stalemate
                     else (Victor (oppositeTeam team))
-            where validMoves = possibleGameMoves game
-                  outcomes = [whoWillWin nextGame | nextMove <- validMoves, let Just nextGame = move game nextMove]
+            where outcomes = [whoWillWin (cMove game mv) | mv <- possibleGameMoves game]
 
 bestMove :: Game -> Move
 bestMove game@(team, pieces, count) = if not $ null winnings then w else if not $ null ties then t else a
-    where outputs = [(whoWillWin newGame, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]        
+    where outputs = [(whoWillWin (cMove game mv), mv) | mv <- possibleGameMoves game]       
           winnings@(w:_) = [theMove | (winner, theMove) <- outputs, winner == (Victor team)]
           ties@(t:_) = [theMove | (winner, theMove) <- outputs, winner == Stalemate]
           (a:_) = [theMove | (_, theMove) <- outputs]
 
 whoMightWin :: Game -> Int -> Rating
 whoMightWin game 0 = rateGame game 
-whoMightWin game@(team, _, _) depth =
-    if victor == Just (Victor White) then 1000 else if victor == Just (Victor Black) then -1000 else if team == White then maximum scores else minimum scores
+whoMightWin game@(team, _, _) depth 
+    | victor == Just (Victor White) = 1000 
+    | victor == Just (Victor Black) = -1000 
+    | team == White = maximum scores 
+    | otherwise = minimum scores
     where scores = [whoMightWin newGame (depth-1) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
           victor = winner game
 
 goodMove :: Game -> Int -> Move
-goodMove game@(team, pieces, count) depth = if team == Black then snd (minimumBy (comparing fst) outputs) else snd (maximumBy (comparing fst) outputs)
+goodMove game@(team, pieces, count) depth = if team == Black then mins else maxs
     where outputs = [(whoMightWin newGame depth, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
+          (_,mins) = (minimum outputs)
+          (_,maxs) = (maximum outputs)
 
 rateGame :: Game -> Rating
 rateGame game@(_,pieces,_) = 
