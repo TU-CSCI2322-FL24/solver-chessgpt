@@ -22,7 +22,8 @@ initialGame = (White, whitePieces++blackPieces,100)--may need to change turn cou
 
 initialGameStr :: String
 initialGameStr = 
-    "w\n100\nwra1 wnb1 wbc1 wqd1 wke1 wbf1 wng1 wrh1 wpa2 wpb2 wpc2 wpd2 wpe2 wpf2 wpg2 wph2 bra8 bnb8 bbc8 bqd8 bke8 bbf8 bng8 brh8 bpa7 bpb7 bpc7 bpd7 bpe7 bpf7 bpg7 bph7"
+    "w\n100\nwra1 wnb1 wbc1 wqd1 wke1 wbf1 wng1 wrh1 wpa2 wpb2 wpc2 wpd2 wpe2 wpf2 \
+    \wpg2 wph2 bra8 bnb8 bbc8 bqd8 bke8 bbf8 bng8 brh8 bpa7 bpb7 bpc7 bpd7 bpe7 bpf7 bpg7 bph7"
 
 blackMate1:: Game
 blackMate1 = fromJust $ readGame "b\n10\nbkb7 brb3 bqf4 wkg2"
@@ -76,4 +77,7 @@ win1 :: Game
 win1 = (Black,[((1,1),(King,White))],50)
 
 mateGame1 :: Game
-mateGame1 = (White,[((3,3),(King,White)),((2,7),(Queen,White)),((1,1),(King,Black))],50)
+mateGame1 = (White,[((3,3),(King,White)),((2,2),(Queen,White)),((1,1),(King,Black))],3)
+
+mateGame2 :: Game
+mateGame2 = (White,[((3,3),(King,White)),((2,7),(Queen,White)),((1,1),(King,Black))],5)
