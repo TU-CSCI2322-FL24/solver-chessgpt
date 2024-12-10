@@ -25,16 +25,22 @@ initialGameStr =
     "w\n100\nwra1 wnb1 wbc1 wqd1 wke1 wbf1 wng1 wrh1 wpa2 wpb2 wpc2 wpd2 wpe2 wpf2 wpg2 wph2 bra8 bnb8 bbc8 bqd8 bke8 bbf8 bng8 brh8 bpa7 bpb7 bpc7 bpd7 bpe7 bpf7 bpg7 bph7"
 
 blackMate1:: Game
-blackMate1 = fromJust $ readGame "b\n10\nbkb7 brb3 bqf4 wkg2"
+blackMate1 = fromJust $ readGame "b\n4\nbkb7 bqg3 wkg2"
+
+blackMate2:: Game
+blackMate2 = fromJust $ readGame "b\n4\nbkb7 brb2 bqa4 wkg1"
 
 whiteMate1 :: Game
-whiteMate1 = fromJust $ readGame "w\n10\nwkb7 wrb3 wqf4 bkg2"
+whiteMate1 = fromJust $ readGame "w\n4\nwkb7 wqg3 bkg2"
 
 whiteMate2 :: Game
-whiteMate2 = fromJust $ readGame "w\n20\nwka1 wqh5 wrb8 bkh7 bph6 bng6 bpg7"
+whiteMate2 = fromJust $ readGame "w\n4\nwkb7 wrb2 wqa4 bkg1"
+
+whiteMate3 :: Game
+whiteMate3 = fromJust $ readGame "w\n4\nwka1 wqh5 wrb8 bkh7 bph6 bng6 bpg7"
 
 whiteStaleMate :: Game
-whiteStaleMate = fromJust $ readGame "w\n2\nwkh4 wrc3 bkf5 bnf3 bqf1"
+whiteStaleMate = fromJust $ readGame "w\n2\nwkh4 bkf5"
 
 pawnGame1 :: Game
 pawnGame1 = fromJust $ move initialGame (Move ((1, 2), (Pawn, White)) (1,3))
