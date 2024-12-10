@@ -35,7 +35,7 @@ whoMightWin game@(team, _, _) depth =
 
 goodMove :: Game -> Int -> Move
 goodMove game@(team, pieces, count) depth = if team == Black then snd (minimumBy (comparing fst) outputs) else snd (maximumBy (comparing fst) outputs)
-    where outputs = [(whoMightWin newGame depth-1, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
+    where outputs = [(whoMightWin newGame depth, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
 
 rateGame :: Game -> Rating
 rateGame game@(_,pieces,_) = 
