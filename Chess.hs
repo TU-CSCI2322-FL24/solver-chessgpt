@@ -5,9 +5,9 @@ import Data.List.Split
 import Data.Maybe 
 import Text.Read
 
-data Move      = Move Piece Position deriving (Show, Eq)
-data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq)
-data Team      = White | Black deriving (Show,Eq)
+data Move      = Move Piece Position deriving (Show, Eq, Ord)
+data PieceType = Pawn | Rook | Knight | Bishop | Queen | King deriving (Show,Eq, Ord)
+data Team      = White | Black deriving (Show,Eq, Ord)
 
 type Position = (Int, Int)
 type Game     = (Team,[Piece],Int)
@@ -43,29 +43,16 @@ replacePiece :: [Piece] -> Piece -> Piece -> [Piece]
 replacePiece pieces old new = new:[piece | piece <- pieces, piece /= old]
 
 move :: Game -> Move -> Maybe Game
-move game@(team,pieces,count) (Move old newPos)
+move game@(team,pieces,count)  mv@(Move old newPos)
   | not $ canMake game old newPos = Nothing -- Can't make move
   | getPieceTeam old /= team      = Nothing -- Attempted move is by the wrong team
-  | otherwise = 
-    case (getPiece game newPos) of 
-      Just target -> Just (newTeam, replacePiece pieces (newPos,target) newPiece,count-1)
-      Nothing -> Just newGame -- Just a move, no pieces taken
-    where whites = getTeamPieces game White
-          blacks = getTeamPieces game Black
-          newPiece = promote (newPos, (getPieceType old, getPieceTeam old))
-          newGame@(newTeam, pieces,newCount) = 
-              if old `elem` whites 
-                then (Black, replacePiece whites old newPiece++blacks,count-1) 
-                else (White, whites++replacePiece blacks old newPiece,count-1)
+  | otherwise = Just $ cMove game mv
 
-cMove :: Game -> Move -> Maybe Game
-cMove game@(team,pieces,count) (Move old newPos)
-  | not $ inBounds newPos = Nothing -- Can't make move
-  | getPieceTeam old /= team      = Nothing -- Attempted move is by the wrong team
-  | otherwise = 
+cMove :: Game -> Move ->  Game
+cMove game@(team,pieces,count) (Move old newPos) =
     case (getPiece game newPos) of 
-      Just target -> Just (newTeam, replacePiece pieces (newPos,target) newPiece,count-1)
-      Nothing -> Just newGame -- Just a move, no pieces taken
+      Just target -> (newTeam, replacePiece pieces (newPos,target) newPiece,count-1)
+      Nothing ->  newGame -- Just a move, no pieces taken
     where whites = getTeamPieces game White
           blacks = getTeamPieces game Black
           newPiece = promote (newPos, (getPieceType old, getPieceTeam old))

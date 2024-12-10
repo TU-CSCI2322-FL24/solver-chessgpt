@@ -51,13 +51,13 @@ dispatch fs game depth
     t <- teamSelect
     interactive (Cheats `elem` fs) t depth game
   | Interactive2p `elem` fs = interactive2p (Cheats `elem` fs) depth game
-  | otherwise = if Verbose `elem` fs then putStrLn ("Try: " ++ show dM ++ "; its rating is " ++ show dR)
+  | otherwise = if Verbose `elem` fs then putStrLn ("Try: " ++ show dM ++ "; its rating is " ++ dR)
   else putStrLn ("Try: " ++ show dM)
     where wM = bestMove game
           dM = goodMove game depth
           dR = case move game dM of
-                Just g -> rateGame game
-                Nothing -> -1000000
+                Just g -> rateEval $ rateGame game
+                Nothing -> "error: invalid move"
 
 moveIO :: [Flag] -> Game -> IO()
 moveIO flags game = 
@@ -95,7 +95,7 @@ interactive isCheat team depth game@(turn,pieces,turns) = do
                         interactive isCheat team depth game
       _ ->
         let m = readMove game m0
-            nG = (if isCheat then cMove else move) game =<< m
+            nG = (if isCheat then Just . (cMove game) else move game) =<< m
         in case (m,nG) of
             (Just movefl,Just g) -> checkForWinner g (interactive isCheat team depth)
             (Just movefl,Nothing) -> do putStrLn "Error: illegal move"
@@ -126,7 +126,7 @@ interactive2p isCheat depth game@(turn,pieces,turns) = do
                         interactive2p isCheat depth game
       _ ->
         let m = readMove game m0
-            nG = (if isCheat then cMove else move) game =<< m
+            nG = (if isCheat then Just . (cMove game) else move game) =<< m
         in case (m,nG) of
             (Just movefl,Just g) -> checkForWinner g (interactive2p isCheat depth)            
             (Just movefl,Nothing) -> do putStrLn "Error: illegal move"
@@ -179,10 +179,10 @@ rateEval i
  | i==0       ="a stalemate"
  | i==(-1000) ="a victory for black"
  | i==1000    ="a victory for white"
- | i>500      ="white is winning overwhelmingly"
- | i<(-500)   ="black is winning overwhelmingly"
- | i>100      ="white is winning"
- | i<(-100)   ="black is winning"
+ | i>10      ="white is winning overwhelmingly"
+ | i<(-10)   ="black is winning overwhelmingly"
+ | i>10      ="white is winning"
+ | i<(-0)   ="black is winning"
  | i>0        ="white is winning by a bit"
  | i<0        ="black is winning by a bit"
 
