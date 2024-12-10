@@ -16,7 +16,7 @@ whoWillWin game@(team, pieces, count) =
                     else (Victor (oppositeTeam team))
             where validMoves = possibleGameMoves game
                   outcomes = [whoWillWin nextGame | nextMove <- validMoves, let Just nextGame = move game nextMove]
- 
+
 bestMove :: Game -> Move
 bestMove game@(team, pieces, count) = if not $ null winnings then w else if not $ null ties then t else a
     where outputs = [(whoWillWin newGame, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]        
@@ -26,6 +26,7 @@ bestMove game@(team, pieces, count) = if not $ null winnings then w else if not 
 
 whoMightWin :: Game -> Int -> Rating
 whoMightWin game 0 = rateGame game 
+{- couldn't figure out this merge conflict - mp
 whoMightWin game@(team, _, _) depth 
     | team == White && null scores = 1000
     | team == Black && null scores = -1000
@@ -36,6 +37,14 @@ whoMightWin game@(team, _, _) depth
 goodMove :: Game -> Int -> Move
 goodMove game@(team, pieces, count) depth = --if team == White then snd (maximum outputs) else snd (minimum outputs)
       if team == White then snd (maximumBy (comparing fst) outputs) else snd (minimumBy (comparing fst) outputs)
+-}
+whoMightWin game@(team, _, _) depth =
+    if victor == Just (Victor White) then 1000 else if victor == Just (Victor Black) then -1000 else if team == White then maximum scores else minimum scores
+    where scores = [whoMightWin newGame (depth-1) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
+          victor = winner game
+
+goodMove :: Game -> Int -> Move
+goodMove game@(team, pieces, count) depth = if team == Black then snd (minimumBy (comparing fst) outputs) else snd (maximumBy (comparing fst) outputs)
     where outputs = [(whoMightWin newGame depth, newMove) | newMove <- possibleGameMoves game, let Just newGame = move game newMove]
 
 rateGame :: Game -> Rating
